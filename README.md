@@ -7,9 +7,11 @@
 [![DOI](https://zenodo.org/badge/590063045.svg)](https://zenodo.org/badge/latestdoi/590063045)
 <!-- badges: end -->
 
-R tools for epidemiology. "Size matters not. Look at me. Judge me by my -log10 p-value, do you?"
+yodR (phonetically: "Yoda") is a small R package with tools for epidemiology and hypothesis testing. 
 
-> v1.0.0 is functionally identical to [lukesRlib v0.2.13](https://github.com/lcpilling/lukesRlib) but renamed to something 55% shorter yet 100% better. Follows the general *nix rule that if a command is >4 characters it's not worth typing. Key functions are also renamed.
+> "Size matters not. Look at me. Judge me by my -log10 p-value, do you?"
+
+Note: v1.0.0 is functionally identical to [lukesRlib v0.2.13](https://github.com/lcpilling/lukesRlib) but renamed to something 55% shorter yet 100% better. Follows the general *nix rule that if a command is >4 characters it's not worth typing. Key functions are also renamed.
 
 <sub>Icon by Google Gemini (Banana Nano)</sub>
 
