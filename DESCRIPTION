@@ -7,7 +7,7 @@ Authors@R: c(person("Luke", "Pilling",
                     comment = c(ORCID = "0000-0002-3332-8454")))
 Description: R functions I sometimes find useful. Some shamelessly borrowed from other packages and the internet generally (attribution given where possible!).
 License: GPL-3
-URL: https://lcpilling.github.io/yodR, https://github.com/lcpilling/yodR
+URL: https://lcpilling.github.io/yodr, https://github.com/lcpilling/yodr
 Depends: 
   R (>= 4.1.1)
 Imports:
@@ -26,4 +26,4 @@ Imports:
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.3.2
-BugReports: https://github.com/lcpilling/yodR/issues
+BugReports: https://github.com/lcpilling/yodr/issues
