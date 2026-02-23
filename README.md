@@ -1,13 +1,12 @@
-# yodR <a href="https://lcpilling.github.io/yodR/"><img src="man/figures/yodR.png" align="right" width="150" /></a>
+# yodr <a href="https://lcpilling.github.io/yodr/"><img src="man/figures/yodr.png" align="right" width="175" /></a>
 
 <!-- badges: start -->
-[![](https://img.shields.io/badge/version-1.0.0-informational.svg)](https://github.com/lcpilling/yodR)
-[![](https://img.shields.io/github/last-commit/lcpilling/yodR.svg)](https://github.com/lcpilling/yodR/commits/master)
+[![](https://img.shields.io/badge/version-1.0.0-informational.svg)](https://github.com/lcpilling/yodr)
+[![](https://img.shields.io/github/last-commit/lcpilling/yodr.svg)](https://github.com/lcpilling/yodr/commits/master)
 [![](https://img.shields.io/badge/lifecycle-experimental-orange)](https://www.tidyverse.org/lifecycle/#experimental)
-[![DOI](https://zenodo.org/badge/590063045.svg)](https://zenodo.org/badge/latestdoi/590063045)
 <!-- badges: end -->
 
-yodR (phonetically: "Yoda") is a small R package with tools for epidemiology and hypothesis testing. 
+yodr (phonetically: "Yoda") is a small R package with tools for epidemiology and hypothesis testing. 
 
 > "Size matters not. Look at me. Judge me by my -log10 p-value, do you?"
 
@@ -25,7 +24,7 @@ Note: v1.0.0 is functionally identical to [lukesRlib v0.2.13](https://github.com
 To install the development version from GitHub use the `remotes` package:
 
 ```r
-remotes::install_github("lcpilling/yodR")
+remotes::install_github("lcpilling/yodr")
 ```
 
 
@@ -36,7 +35,7 @@ remotes::install_github("lcpilling/yodR")
 
 Motivation: by default the [{broom}](https://broom.tidymodels.org/) package uses `confint()` to estimate CIs. For GLMs this calculates CIs via the profile likelihood method. When using large datasets this takes a long time and does not meaningfully alter the CIs compared to calculating using 1.96*SE
 
-`tidy()` does a few other nice things: hides the intercept by default, automatically detects logistic/CoxPH/CRR models and exponentiates the estimates, and if p==0 returns the 'extreme p' as a string. Other options include -log10 p-values. See the [`tidy()` Wiki](https://github.com/lcpilling/lukesRlib/wiki/tidy()) page for more details 
+`tidy()` does a few other nice things: hides the intercept by default, automatically detects logistic/CoxPH/CRR models and exponentiates the estimates, and if p==0 returns the 'extreme p' as a string. Other options include -log10 p-values. 
 
 #### Examples
 
@@ -70,14 +69,14 @@ tidy(fit_coxph)
 Automatically identified the input as from a coxph model and exponentiated estimate/CIs. Also provided N and Nevents. Also, tidied "as.factor()" variable names. If `haven::as_factor()` is used then any labels are shown correctly.
 
 
-### phe()
+### phewas()
 
-`phe()` (phonetically: "fee") makes PheWAS in R easy and fast. It gets the tidy model output for categorical or continuous exposures, from linear, logistic, or CoxPH models. Output includes N and N cases, outcome, and model info. User can provide multiples exposures and outcomes. 
+`phewas()` (phonetically: "fee-was") makes PheWAS in R easy and fast. It gets the tidy model output for categorical or continuous exposures, from linear, logistic, or CoxPH models. Output includes N and N cases, outcome, and model info. User can provide multiples exposures and outcomes. 
 
 #### Example: Categorical exposure in logistic regression
 
 ```r
-phe(x="smoking_status", y="chd", z="+age", d=ukb, model="logistic", af=TRUE)
+phewas(x="smoking_status", y="chd", z="+age", d=ukb, model="logistic", af=TRUE)
 #> A tibble: 3 x 12
 #>   outcome exposure               estimate std.error statistic p.value conf.low conf.high     n n_cases model   
 #>   <chr>   <chr>                     <dbl>     <dbl>     <dbl>   <dbl>    <dbl>     <dbl> <dbl>   <dbl> <chr>   
@@ -91,7 +90,7 @@ The `estimate` is the Odds Ratio from a logistic regression model, and `n` and `
 #### Example: Multiple exposures on single outcome (i.e., a "PheWAS")
 ```r
 x_vars = c("bmi","ldl","sbp")
-phe(x=x_vars, y="chd", z="+age+sex", d=ukb, model="logistic")
+phewas(x=x_vars, y="chd", z="+age+sex", d=ukb, model="logistic")
 #> # A tibble: 3 x 11
 #>   outcome exposure estimate std.error statistic p.value conf.low conf.high     n n_cases model   
 #>   <chr>   <chr>       <dbl>     <dbl>     <dbl>   <dbl>    <dbl>     <dbl> <int>   <int> <chr>   
@@ -105,18 +104,18 @@ Multiple exposures and outcomes can be provided simultaneously. Here, the exposu
 #### Example: stratified analyses
 ```r
 res_all     = ukb |> 
-                phe(x=x_vars, y="chd", z="+age+sex", model="logistic", note="All")
+                phewas(x=x_vars, y="chd", z="+age+sex", model="logistic", note="All")
 res_males   = ukb |> 
                 filter(sex=="Male") |> 
-                phe(x=x_vars, y="chd", z="+age", model="logistic", note="Males")
+                phewas(x=x_vars, y="chd", z="+age", model="logistic", note="Males")
 res_females = ukb |> 
                 filter(sex=="Female") |> 
-                phe(x=x_vars, y="chd", z="+age", model="logistic", note="Females")
+                phewas(x=x_vars, y="chd", z="+age", model="logistic", note="Females")
 
 res = list_rbind(list(res_all, res_males, res_females))
 ```
 
-Data is first argument. `phe()` can be on the right-side of other `dplyr` functions. Stratified models can be therefore easily performed. The `note` argument means output is labelled and can be combined into a single data frame easily.
+Data is first argument. `phewas()` can be on the right-side of other `dplyr` functions. Stratified models can be therefore easily performed. The `note` argument means output is labelled and can be combined into a single data frame easily.
 
 
 ## Data Transformation
@@ -171,7 +170,7 @@ get_se(lci, uci)
 #>  [1] 0.05102041
 
 # custom denominator e.g., if CIs correspond to a p-value 5*10-8
-get_se(lci, uci, denominator=lukesRlib::get_z(5e-8)*2)   
+get_se(lci, uci, denominator=yodr::get_z(5e-8)*2)   
 #>  [1] 0.01834421
 ```
 

@@ -10,7 +10,7 @@
 #'
 #' @author Luke Pilling
 #'
-#' @name phe
+#' @name phewas
 #'
 #' @param d A \code{data.frame} or \code{tibble}. The data.
 #' @param x A string or vector of strings. The exposure variable name(s), found in `d`. (character)
@@ -58,25 +58,25 @@
 #'
 #' @examples
 #' # for one outcome, equivalent to `tidy_ci(glm(sbp ~ bmi +age+sex, d=example_data))` - with added `n`
-#' phe(x="bmi", y="sbp", z="+age+sex", d=example_data)
+#' phewas(x="bmi", y="sbp", z="+age+sex", d=example_data)
 #'
 #' # categorical exposure, binary outcome, and stratified analysis (with note)
 #' #  - note that data can be passed using the pipe if desired
 #' example_data |> dplyr::filter(sex==1) |>
-#'   phe(x="bmi_cat", y="event", z="+age", model="logistic", af=TRUE, note="Males only")  |> print(width=500)
+#'   phewas(x="bmi_cat", y="event", z="+age", model="logistic", af=TRUE, note="Males only")  |> print(width=500)
 #'
 #' # multiple exposures and/or outcomes - get pseudo R^2
 #' x_vars = c("bmi","sbp","dbp","scl")
 #' y_vars = c("event","sex")
-#' phe(x=x_vars, y=y_vars, z="+age", d=example_data, model="logistic", get_fit=TRUE)  |> print(width=500)
+#' phewas(x=x_vars, y=y_vars, z="+age", d=example_data, model="logistic", get_fit=TRUE)  |> print(width=500)
 #'
 #' # if desired, can also return estimates for other independent variables (terms) in the model
 #' x_vars = c("bmi","sbp","dbp")
-#' phe(x=x_vars, y="event", z="+age+sex", d=example_data, model="logistic", return_all_terms=TRUE)  |> print(width=500)
+#' phewas(x=x_vars, y="event", z="+age+sex", d=example_data, model="logistic", return_all_terms=TRUE)  |> print(width=500)
 #'
 #' @export
 #'
-phe = function(
+phewas <- function(
 	d, 
 	x, 
 	y, 
@@ -102,15 +102,15 @@ phe = function(
 	...
 )  {
 	
-	v <- packageVersion("yodR")
-	cli::cli_alert_info("yodR v{v}")
+	v <- packageVersion("yodr")
+	cli::cli_alert_info("yodr v{v}")
 	start_time <- Sys.time()
 	
 	# check inputs
 	if (class(x) != "character")  stop("x needs to be a string or character vector")
 	if (class(y) != "character")  stop("y needs to be a string or character vector")
 	if (class(z) != "character")  stop("z needs to be a string")
-	if (! any(class(d) %in% c("data.frame","tbl","tbl_df")))  stop("d needs to be a data.frame or tibble. Best to explicitly provide inputs using `phe(x=\"BMI\", y=\"diabetes\", z=\"sex\", d=data)` or `data |> phe(x=\"BMI\", y=\"diabetes\", z=\"sex\")`")
+	if (! any(class(d) %in% c("data.frame","tbl","tbl_df")))  stop("d needs to be a data.frame or tibble. Best to explicitly provide inputs using `phewas(x=\"BMI\", y=\"diabetes\", z=\"sex\", d=data)` or `data |> phewas(x=\"BMI\", y=\"diabetes\", z=\"sex\")`")
 	if (! any(model %in% c("lm","logistic","coxph")))         stop("model needs to be 'lm' 'logistic' or 'coxph'")
 	
 	# verbose?
@@ -203,13 +203,13 @@ phe = function(
 	if (verbose)  cat("Beginning analysis:\n")
 	
 	# get x and y var lists
-	xv_vars <- yodR:::xv(x,y)
-	yv_vars <- yodR:::yv(x,y)
+	xv_vars <- yodr:::xv(x,y)
+	yv_vars <- yodr:::yv(x,y)
 	xv_vars_n <- length(xv_vars)
 	cli::cli_alert("Getting {xv_vars_n} association{?s}")
 	ret = purrr::map2(xv_vars, 
 	                  yv_vars, 
-	                  \(x,y) yodR:::phe1(x=x, y=y, z=z, d=d, 
+	                  \(x,y) yodr:::phe1(x=x, y=y, z=z, d=d, 
 	                                                model=model, af=af, af_base=af_base, note=note, get_fit=get_fit, include_formula=include_formula,
 	                                                scale_x=scale_x, scale_y=scale_y, 
 	                                                inv_norm_x=inv_norm_x, inv_norm_y=inv_norm_y, 
@@ -222,7 +222,7 @@ phe = function(
 	# Get extreme p-values if any p-values rounded to zero? 
 	if (extreme_ps)  {
 		if (verbose)  cat("\nGetting extreme p-values\n")
-		if (any(ret$p.value==0, na.rm=TRUE))  ret = ret |> dplyr::mutate(p.extreme=dplyr::if_else(p.value==0, yodR::get_p_extreme(statistic), NA_character_))
+		if (any(ret$p.value==0, na.rm=TRUE))  ret = ret |> dplyr::mutate(p.extreme=dplyr::if_else(p.value==0, yodr::get_p_extreme(statistic), NA_character_))
 	}
 	
 	# finished!
@@ -235,7 +235,7 @@ phe = function(
 
 
 #' Internal function to get tidy model output (just exposure of interest, with augmented output)
-#' Inherits most options from `phe()`
+#' Inherits most options from `phewas()`
 #' @noRd
 phe1 = function(
 	x, 
@@ -301,8 +301,8 @@ phe1 = function(
 			this_formula_y <- yy
 		}
 		if (inv_norm_y & !logistic & !coxph)  {
-			d <- d |> dplyr::mutate( !! rlang::sym(y) := yodR::inv_norm( !! rlang::sym(y) ) )
-			this_formula_y <- stringr::str_c("yodR::inv_norm(", yy, ")")
+			d <- d |> dplyr::mutate( !! rlang::sym(y) := yodr::inv_norm( !! rlang::sym(y) ) )
+			this_formula_y <- stringr::str_c("yodr::inv_norm(", yy, ")")
 		}
 		
 		# exposure: scale or inverse normalize?
@@ -311,8 +311,8 @@ phe1 = function(
 			this_formula_x <- xx
 		}
 		if (inv_norm_x & !af)  {
-			d = d |> dplyr::mutate( !! rlang::sym(x) := yodR::inv_norm( !! rlang::sym(x) ) )
-			this_formula_x <- stringr::str_c("yodR::inv_norm(", xx, ")")
+			d = d |> dplyr::mutate( !! rlang::sym(x) := yodr::inv_norm( !! rlang::sym(x) ) )
+			this_formula_x <- stringr::str_c("yodr::inv_norm(", xx, ")")
 		}
 		
 		# winsorizing exposure or outcome?
@@ -378,7 +378,7 @@ phe1 = function(
 		if (verbose)  cat("Model finished - processing\n")
 		
 		# get tidy output
-		res_all = yodR::tidy_ci(fit, extreme_ps=FALSE, quiet=TRUE, get_r2=FALSE, ...)
+		res_all = yodr::tidy_ci(fit, extreme_ps=FALSE, quiet=TRUE, get_r2=FALSE, ...)
 		if (verbose)  cat("Got tidy output\n")
 		
 		# Filter to just the exposure variable 
@@ -625,10 +625,10 @@ yv = function(x_vars, y_vars) {
 
 #' Old get_assoc function
 #'
-#' @describeIn phe Alias for phe
+#' @describeIn phewas Alias for phewas
 #' @export
 get_assoc <- function(x, ...) {
-  lifecycle::deprecate_soft("1.0.0", "get_assoc()", "phe()")
-  phe(x, ...)
+  lifecycle::deprecate_soft("1.0.0", "get_assoc()", "phewas()")
+  phewas(x, ...)
 }
 

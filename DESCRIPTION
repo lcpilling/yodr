@@ -1,4 +1,4 @@
-Package: yodR
+Package: yodr
 Title: R tools for epidemiology
 Version: 1.0.0
 Authors@R: c(person("Luke", "Pilling", 
