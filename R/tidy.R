@@ -66,7 +66,7 @@ tidy = function(
 	
 	# is this a LMM from {lme4}? Tidy myself, otherwise use {broom}
 	if ("lmerMod" %in% class(x))  {
-		ret = yodR:::tidy_lme4(x)
+		ret = yodr:::tidy_lme4(x)
 	} else {
 		# get tidy output -- do not use `broom` CIs or Exponentiate options by default
 		ret = broom::tidy(x, conf.int = conf.int, exponentiate = FALSE, ...)
@@ -115,11 +115,11 @@ tidy = function(
 	# get -log10 p-value?
 	if (neglog10p)  {
 		if (is.na(n)) cat("To calculate -log10 p-values provide the sample size `n`\n")
-		if (!is.na(n)) ret = ret |> dplyr::mutate(neglog10p=yodR::get_p_neglog10_n(statistic, !!n))
+		if (!is.na(n)) ret = ret |> dplyr::mutate(neglog10p=yodr::get_p_neglog10_n(statistic, !!n))
 	}
 	
 	# get extreme p-values?
-	if (extreme_ps)  if (any(ret$p.value==0, na.rm=TRUE))  ret = ret |> dplyr::mutate(p.extreme=dplyr::if_else(p.value==0, yodR::get_p_extreme(statistic), NA_character_))
+	if (extreme_ps)  if (any(ret$p.value==0, na.rm=TRUE))  ret = ret |> dplyr::mutate(p.extreme=dplyr::if_else(p.value==0, yodr::get_p_extreme(statistic), NA_character_))
 	
 	# check model type & get sample size + case numbers
 	model = ""
@@ -197,7 +197,7 @@ tidy_lme4 = function(x) {
 		std.error = as.vector(x[,"Std. Error"]),
 		statistic = as.vector(x[,"t value"])
 	)
-	x2$p.value = yodR::get_p(x2$statistic)
+	x2$p.value = yodr::get_p(x2$statistic)
 	x2
 }
 
