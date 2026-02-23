@@ -1,4 +1,4 @@
-url: https://lcpilling.github.io/lukesRlib/
+url: https://lcpilling.github.io/yodr/
 template:
   bootstrap: 5
   light-switch: true
@@ -12,11 +12,11 @@ reference:
   desc: >
     Get associations between a number of exposures and outcomes.
   contents: 
-  - get_assoc
+  - phewas
 - title: "Get summary statistics"
   desc: "'Tidy' model output with confidence intervals and other useful information."
   contents:
-  - tidy_ci
+  - tidy
 - title: "Working with test statistics"
   desc: "Derived p-value, standard error (etc.) from other test statistics."
   contents:
