@@ -60,8 +60,8 @@
 #'        \code{default=""} (character)
 #' @param parallel Logical. Run in parallel using {parallelly} package? If FALSE, will run sequentially. Parallel processing can speed up the analysis when you have many exposures and/or outcomes, but be aware it uses more RAM and can be slower for small numbers of exposures/outcomes due to overhead of parallelization.
 #'        \code{default=FALSE}
-#' @param n_child Numeric. Number of child processes to create for parallel processing.
-#'        \code{default=(total cores available)-1}
+#' @param n_child Numeric. Number of child processes to create for parallel processing. Default is a fraction of the total cores available to avoid crashing cloud instances due to RAM limits.
+#'        \code{default=(total cores available)/3}
 #' @param progress Logical. Show progress bar from {purrr} `map()` function (useful when multiple exposures/outcomes provided).
 #'        \code{default=TRUE}
 #' @param verbose Logical. Be verbose,
@@ -110,7 +110,7 @@ phewas <- function(
 	return_all_terms = FALSE,
 	interacts_with = "",
 	parallel = FALSE,
-	n_child = parallelly::availableCores() - 1,
+	n_child = floor(parallelly::availableCores()/3),
 	progress = TRUE,
 	verbose = FALSE,
 	...
