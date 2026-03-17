@@ -60,7 +60,7 @@
 #'        \code{default=""} (character)
 #' @param parallel Logical. Run in parallel using {parallelly} package? If FALSE, will run sequentially. Parallel processing can speed up the analysis when you have many exposures and/or outcomes, but be aware it uses more RAM and can be slower for small numbers of exposures/outcomes due to overhead of parallelization.
 #'        \code{default=FALSE}
-#' @param n_cores Numeric. Number of cores to use for parallel processing.
+#' @param n_child Numeric. Number of child processes to create for parallel processing.
 #'        \code{default=(total cores available)-1}
 #' @param progress Logical. Show progress bar from {purrr} `map()` function (useful when multiple exposures/outcomes provided).
 #'        \code{default=TRUE}
@@ -110,7 +110,7 @@ phewas <- function(
 	return_all_terms = FALSE,
 	interacts_with = "",
 	parallel = FALSE,
-	n_cores = parallelly::availableCores() - 1,
+	n_child = parallelly::availableCores() - 1,
 	progress = TRUE,
 	verbose = FALSE,
 	...
@@ -129,12 +129,13 @@ phewas <- function(
 
 	# check parallel
 	if (parallel)  {
-		cli::cli_alert("Running in parallel with {n_cores} cores")
 		# check system RAM
 		mem_info <- system("grep MemTotal /proc/meminfo", intern = TRUE)
 		total_ram_kb <- as.numeric(gsub("[^0-9]", "", mem_info))
 		total_ram_gb <- total_ram_kb / 1024^2
-		cli::cli_alert_info("Total system RAM: {round(total_ram_gb, 2)} GB -- if crashes occur try increasing memory or set parallel=FALSE")
+		cli::cli_alert("Running in parallel with {n_child} child processes. Total system RAM: {round(total_ram_gb, 2)} GB")
+		# Give some info
+		cli::cli_alert_info("Be aware that each child process uses extra RAM. If your instance is crashing reduce the `n_child` parameter (in a standard RStudio DNAnexus instance with 16Gb RAM I find it is most efficient to set 2 or 3 child processes) or set `parallel=FALSE`.")
 	}
 	
 	# verbose?
@@ -266,7 +267,7 @@ phewas <- function(
 		ret_list <- parallel::mclapply(
 			X = seq_along(xv_vars),
 			FUN = fit_one_i,
-			mc.cores = n_cores,
+			mc.cores = n_child,
 			mc.preschedule = mc_preschedule
 		)
 

@@ -123,7 +123,7 @@ For systems with OpenMP or other similar configurations you may see good CPU usa
 
 Fomr v1.1.0 you can set `parallel=TRUE` in `phewas()` to use the {parallely} package and run in parallel. Unless you are running with many exposures/outcomes you might not see an improvement if your system uses OpenMP etc.
 
-Be aware that each parallel worker uses extra RAM as some data is copied to each node.
+Be aware that each child process (parallel worker) uses extra RAM as some data is copied to each node. In a standard RStudio DNAnexus instance with 16Gb RAM I find it is most efficient to set 2 or 3 child processes (then everything goes faster but doesn't require big resources).
 
 
 ## Data Transformation
