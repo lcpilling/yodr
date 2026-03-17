@@ -26,6 +26,8 @@ phewas(
   winsorize_n = 5,
   return_all_terms = FALSE,
   interacts_with = "",
+  parallel = FALSE,
+  n_child = floor(parallelly::availableCores()/3),
   progress = TRUE,
   verbose = FALSE,
   ...
@@ -92,6 +94,12 @@ To use base R `as.factor()` instead set option "af_base" to TRUE
 \item{interacts_with}{A string. A variable found in `d`. Will add to regression formula like `x*i` and catch output
 \code{default=""} (character)}
 
+\item{parallel}{Logical. Run in parallel using {parallelly} package? If FALSE, will run sequentially. Parallel processing can speed up the analysis when you have many exposures and/or outcomes, but be aware it uses more RAM and can be slower for small numbers of exposures/outcomes due to overhead of parallelization.
+\code{default=FALSE}}
+
+\item{n_child}{Numeric. Number of child processes to create for parallel processing. Default is a fraction of the total cores available to avoid crashing cloud instances due to RAM limits.
+\code{default=(total cores available)/3}}
+
 \item{progress}{Logical. Show progress bar from {purrr} `map()` function (useful when multiple exposures/outcomes provided).
 \code{default=TRUE}}
 
@@ -108,7 +116,13 @@ To easily get tidy model output (from linear or logistic GLM, or CoxPH) for a ca
 
 For all exposures, it gets the N. For categorical exposures, the N is split by group, and a row is included for the reference category
 
-Can provide multiple exposures and/or outcomes
+Can provide multiple exposures and/or outcomes 
+
+Options to scale or inverse normal transform the exposure and/or outcome, and to winsorize the exposure and/or outcome (values beyond N SDs from the mean are set to N).
+
+Options to return model fit statistic (R^2 for linear, pseudo-R^2 for logistic, C-statistic for CoxPH) and to include the regression formula in the output.
+
+Options to return estimates for all independent variables in the model (not just the exposure of interest) and to include interaction terms with a specified variable.
 }
 \section{Functions}{
 \itemize{
