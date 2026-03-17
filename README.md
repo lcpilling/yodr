@@ -1,7 +1,7 @@
 # yodr <a href="https://lcpilling.github.io/yodr/"><img src="man/figures/yodr.png" align="right" width="175" /></a>
 
 <!-- badges: start -->
-[![](https://img.shields.io/badge/version-1.0.0-informational.svg)](https://github.com/lcpilling/yodr)
+[![](https://img.shields.io/badge/version-1.1.0-informational.svg)](https://github.com/lcpilling/yodr)
 [![](https://img.shields.io/github/last-commit/lcpilling/yodr.svg)](https://github.com/lcpilling/yodr/commits/master)
 [![](https://img.shields.io/badge/lifecycle-experimental-orange)](https://www.tidyverse.org/lifecycle/#experimental)
 <!-- badges: end -->
@@ -10,7 +10,7 @@ yodr (phonetically: "Yoda") is a small R package with tools for epidemiology and
 
 > "Size matters not. Look at me. Judge me by my -log10 p-value, do you?"
 
-Note: v1.0.0 is functionally identical to [lukesRlib v0.2.13](https://github.com/lcpilling/lukesRlib) but renamed to something 55% shorter yet 100% better. Follows the general *nix rule that if a command is >4 characters it's not worth typing. Key functions are also renamed.
+Note: v1.0.0 was functionally identical to [lukesRlib v0.2.13](https://github.com/lcpilling/lukesRlib) but renamed to something 55% shorter yet 100% better. Follows the general *nix rule that if a command is >4 characters it's not worth typing. Key functions are also renamed.
 
 <sub>Icon by Google Gemini (Banana Nano)</sub>
 
@@ -116,6 +116,14 @@ res = list_rbind(list(res_all, res_males, res_females))
 ```
 
 Data is first argument. `phewas()` can be on the right-side of other `dplyr` functions. Stratified models can be therefore easily performed. The `note` argument means output is labelled and can be combined into a single data frame easily.
+
+### Parallel processing
+
+For systems with OpenMP or other similar configurations you may see good CPU usage as the underlying algebra/decomposiions etc can be multi-threaded. For systems limited to the reference BLAS you might just see one thread used (i.e., things will feel slow).
+
+Fomr v1.1.0 you can set `parallel=TRUE` in `phewas()` to use the {parallely} package and run in parallel. Unless you are running with many exposures/outcomes you might not see an improvement if your system uses OpenMP etc.
+
+Be aware that each parallel worker uses extra RAM as some data is copied to each node.
 
 
 ## Data Transformation
