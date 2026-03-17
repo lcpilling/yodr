@@ -1,3 +1,10 @@
+# yodr 1.1.0 (17th march 2026)
+
+### New features
+ - `phewas` can now utilise more cores by running with `parallel=TRUE`
+ - {parallelly} package added to dependencies
+
+
 # yodr 1.0.0 (22nd Feb 2026)
 
 ### Changes 

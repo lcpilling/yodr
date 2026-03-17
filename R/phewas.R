@@ -5,6 +5,14 @@
 #' For all exposures, it gets the N. For categorical exposures, the N is split by group, and a row is included for the reference category
 #'
 #' Can provide multiple exposures and/or outcomes 
+#' 
+#' Options to scale or inverse normal transform the exposure and/or outcome, and to winsorize the exposure and/or outcome (values beyond N SDs from the mean are set to N).
+#' 
+#' Options to return model fit statistic (R^2 for linear, pseudo-R^2 for logistic, C-statistic for CoxPH) and to include the regression formula in the output.
+#' 
+#' Options to return estimates for all independent variables in the model (not just the exposure of interest) and to include interaction terms with a specified variable.
+#' 
+#' 
 #'
 #' @return Returns a tibble - summary statistics from a model 
 #'
@@ -50,6 +58,10 @@
 #'        \code{default=FALSE}
 #' @param interacts_with A string. A variable found in `d`. Will add to regression formula like `x*i` and catch output
 #'        \code{default=""} (character)
+#' @param parallel Logical. Run in parallel using {parallelly} package? If FALSE, will run sequentially. Parallel processing can speed up the analysis when you have many exposures and/or outcomes, but be aware it uses more RAM and can be slower for small numbers of exposures/outcomes due to overhead of parallelization.
+#'        \code{default=FALSE}
+#' @param n_cores Numeric. Number of cores to use for parallel processing.
+#'        \code{default=(total cores available)-1}
 #' @param progress Logical. Show progress bar from {purrr} `map()` function (useful when multiple exposures/outcomes provided).
 #'        \code{default=TRUE}
 #' @param verbose Logical. Be verbose,
@@ -97,6 +109,8 @@ phewas <- function(
 	winsorize_n = 5,
 	return_all_terms = FALSE,
 	interacts_with = "",
+	parallel = FALSE,
+	n_cores = parallelly::availableCores() - 1,
 	progress = TRUE,
 	verbose = FALSE,
 	...
@@ -112,6 +126,16 @@ phewas <- function(
 	if (class(z) != "character")  stop("z needs to be a string")
 	if (! any(class(d) %in% c("data.frame","tbl","tbl_df")))  stop("d needs to be a data.frame or tibble. Best to explicitly provide inputs using `phewas(x=\"BMI\", y=\"diabetes\", z=\"sex\", d=data)` or `data |> phewas(x=\"BMI\", y=\"diabetes\", z=\"sex\")`")
 	if (! any(model %in% c("lm","logistic","coxph")))         stop("model needs to be 'lm' 'logistic' or 'coxph'")
+
+	# check parallel
+	if (parallel)  {
+		cli::cli_alert("Running in parallel with {n_cores} cores")
+		# check system RAM
+		mem_info <- system("grep MemTotal /proc/meminfo", intern = TRUE)
+		total_ram_kb <- as.numeric(gsub("[^0-9]", "", mem_info))
+		total_ram_gb <- total_ram_kb / 1024^2
+		cli::cli_alert_info("Total system RAM: {round(total_ram_gb, 2)} GB -- if crashes occur try increasing memory or set parallel=FALSE")
+	}
 	
 	# verbose?
 	if (verbose)  {
@@ -207,18 +231,61 @@ phewas <- function(
 	yv_vars <- yodr:::yv(x,y)
 	xv_vars_n <- length(xv_vars)
 	cli::cli_alert("Getting {xv_vars_n} association{?s}")
-	ret = purrr::map2(xv_vars, 
-	                  yv_vars, 
-	                  \(x,y) yodr:::phe1(x=x, y=y, z=z, d=d, 
-	                                                model=model, af=af, af_base=af_base, note=note, get_fit=get_fit, include_formula=include_formula,
-	                                                scale_x=scale_x, scale_y=scale_y, 
-	                                                inv_norm_x=inv_norm_x, inv_norm_y=inv_norm_y, 
-	                                                winsorize_x=winsorize_x, winsorize_y=winsorize_y, winsorize_n=winsorize_n,
-	                                                return_all_terms=return_all_terms, interacts_with=interacts_with,
-	                                                verbose=verbose), 
-	                 .progress = progress) |> 
-	                 purrr::list_rbind()
-	
+
+	# if parallel use parallely otherwise run sequentially
+	if (parallel)  {
+
+		dots <- list(...)
+		mc_preschedule <- dots$mc_preschedule %||% TRUE
+
+		fit_one_i <- function(i) {
+			phe1(
+				x = xv_vars[[i]],
+				y = yv_vars[[i]],
+				z = z,
+				d = d,
+				model = model,
+				af = af,
+				af_base = af_base,
+				note = note,
+				get_fit = get_fit,
+				include_formula = include_formula,
+				scale_x = scale_x,
+				scale_y = scale_y,
+				inv_norm_x = inv_norm_x,
+				inv_norm_y = inv_norm_y,
+				winsorize_x = winsorize_x,
+				winsorize_y = winsorize_y,
+				winsorize_n = winsorize_n,
+				return_all_terms = return_all_terms,
+				interacts_with = interacts_with,
+				verbose = verbose
+			)
+		}
+
+		ret_list <- parallel::mclapply(
+			X = seq_along(xv_vars),
+			FUN = fit_one_i,
+			mc.cores = n_cores,
+			mc.preschedule = mc_preschedule
+		)
+
+		ret <- ret_list |> purrr::list_rbind()
+
+	} else {
+		ret = purrr::map2(xv_vars, 
+						yv_vars, 
+						\(x,y) yodr:::phe1(x=x, y=y, z=z, d=d, 
+														model=model, af=af, af_base=af_base, note=note, get_fit=get_fit, include_formula=include_formula,
+														scale_x=scale_x, scale_y=scale_y, 
+														inv_norm_x=inv_norm_x, inv_norm_y=inv_norm_y, 
+														winsorize_x=winsorize_x, winsorize_y=winsorize_y, winsorize_n=winsorize_n,
+														return_all_terms=return_all_terms, interacts_with=interacts_with,
+														verbose=verbose), 
+						.progress = progress) |> 
+						purrr::list_rbind()
+	}
+
 	# Get extreme p-values if any p-values rounded to zero? 
 	if (extreme_ps)  {
 		if (verbose)  cat("\nGetting extreme p-values\n")
