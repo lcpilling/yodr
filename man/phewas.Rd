@@ -38,21 +38,21 @@ get_assoc(x, ...)
 \arguments{
 \item{d}{A \code{data.frame} or \code{tibble}. The data.}
 
-\item{x}{A string or vector of strings. The exposure variable name(s), found in `d`. (character)}
+\item{x}{A string or vector of strings. The exposure variable name(s), found in \code{d}. (character)}
 
-\item{y}{A string. The outcome variable name, found in `d` -- if model is 'coxph' then paste the survival object here e.g., 'Surv(time, event)' where `time` and `event` are variables in `d`. (character)}
+\item{y}{A string. The outcome variable name, found in \code{d} -- if model is 'coxph' then paste the survival object here e.g., 'Surv(time, event)' where \code{time} and \code{event} are variables in \code{d}. (character)}
 
-\item{z}{A string. The covariate formula (e.g., " + age + sex"), found in `d`. Default is no covariates. 
+\item{z}{A string. The covariate formula (e.g., " + age + sex"), found in \code{d}. Default is no covariates.
 \code{default=""} (character)}
 
 \item{model}{A string. The type of model to perform. Can be "lm", "logistic" or "coxph".
 \code{default="lm"} (character)}
 
-\item{af}{Logical. Is `x` categorical? I.e., include in formula like `haven::as_factor(x)`.
-To use base R `as.factor()` instead set option "af_base" to TRUE
+\item{af}{Logical. Is \code{x} categorical? I.e., include in formula like \code{haven::as_factor(x)}.
+To use base R \code{as.factor()} instead set option "af_base" to TRUE
 \code{default=FALSE}}
 
-\item{af_base}{Logical. Use base R `as.factor()` instead of `haven::as_factor(x)`?
+\item{af_base}{Logical. Use base R \code{as.factor()} instead of \code{haven::as_factor(x)}?
 \code{default=FALSE}}
 
 \item{note}{A string. If you want to include a note like "All", "Males", "C282Y homozygotes" to describe the model or sample.
@@ -91,7 +91,7 @@ To use base R `as.factor()` instead set option "af_base" to TRUE
 \item{return_all_terms}{Logical. Return estimates for all independent variables (terms) in the model? If TRUE, includes an adddition column 'term'
 \code{default=FALSE}}
 
-\item{interacts_with}{A string. A variable found in `d`. Will add to regression formula like `x*i` and catch output
+\item{interacts_with}{A string. A variable found in \code{d}. Will add to regression formula like \code{x*i} and catch output
 \code{default=""} (character)}
 
 \item{parallel}{Logical. Run in parallel using {parallelly} package? If FALSE, will run sequentially. Parallel processing can speed up the analysis when you have many exposures and/or outcomes, but be aware it uses more RAM and can be slower for small numbers of exposures/outcomes due to overhead of parallelization.
@@ -100,13 +100,13 @@ To use base R `as.factor()` instead set option "af_base" to TRUE
 \item{n_child}{Numeric. Number of child processes to create for parallel processing. Default is a fraction of the total cores available to avoid crashing cloud instances due to RAM limits.
 \code{default=(total cores available)/3}}
 
-\item{progress}{Logical. Show progress bar from {purrr} `map()` function (useful when multiple exposures/outcomes provided).
+\item{progress}{Logical. Show progress bar from {purrr} \code{map()} function (useful when multiple exposures/outcomes provided).
 \code{default=TRUE}}
 
 \item{verbose}{Logical. Be verbose,
 \code{default=FALSE}}
 
-\item{...}{Other `tidy_ci()` options}
+\item{...}{Other \code{tidy_ci()} options}
 }
 \value{
 Returns a tibble - summary statistics from a model
@@ -116,7 +116,7 @@ To easily get tidy model output (from linear or logistic GLM, or CoxPH) for a ca
 
 For all exposures, it gets the N. For categorical exposures, the N is split by group, and a row is included for the reference category
 
-Can provide multiple exposures and/or outcomes 
+Can provide multiple exposures and/or outcomes
 
 Options to scale or inverse normal transform the exposure and/or outcome, and to winsorize the exposure and/or outcome (values beyond N SDs from the mean are set to N).
 

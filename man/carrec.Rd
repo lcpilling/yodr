@@ -12,33 +12,33 @@ carrec(var, recodes, as_fac, as_num = TRUE, levels)
 \item{recodes}{character string of recode specifications: see below, but
 former Stata users will find this stuff familiar}
 
-\item{as_fac}{return a factor; default is `TRUE` if `var` is a
-factor,  `FALSE` otherwise}
+\item{as_fac}{return a factor; default is \code{TRUE} if \code{var} is a
+factor,  \code{FALSE} otherwise}
 
-\item{as_num}{if `TRUE` (which is the default) and `as.factor` is `FALSE`,
+\item{as_num}{if \code{TRUE} (which is the default) and \code{as.factor} is \code{FALSE},
 the result will be coerced to a numeric if all values in the result are numeric.
 This should be what you want in majority of applications for regression analysis.}
 
 \item{levels}{an optional argument specifying the order of the levels in the
 returned factor; the default is to use the sort order of the level names.}
 
-\item{...}{optional, only to make the shortcut (`carr()`) work}
+\item{...}{optional, only to make the shortcut (\code{carr()}) work}
 }
 \value{
-`carrec()` returns a vector, recoded to the specifications of the
+\code{carrec()} returns a vector, recoded to the specifications of the
 user.
 }
 \description{
-Lifted straight from Steve Miller's {stevemisc} package (v1.4.1). 
+Lifted straight from Steve Miller's {stevemisc} package (v1.4.1).
 This recodes a numeric vector, character vector, or factor
 according to fairly simple recode specifications that former Stata users
-will appreciate. Yes, this is taken from John Fox's `recode()` function in
-his \pkg{car} package. I'm going with `carrec()` (i.e. shorthand for
-`car::recode()`, phonetically here: "car-wreck") for this package.
+will appreciate. Yes, this is taken from John Fox's \code{recode()} function in
+his \pkg{car} package. I'm going with \code{carrec()} (i.e. shorthand for
+\code{car::recode()}, phonetically here: "car-wreck") for this package.
 
 The goal here is to minimize the number of function clashes with
 multiple packages that I use in my workflow. For example: \pkg{car},
-\pkg{dplyr}, and \pkg{Hmisc} all have `recode()` functions. I rely on
+\pkg{dplyr}, and \pkg{Hmisc} all have \code{recode()} functions. I rely on
 the \pkg{car} package just for this function, but it conflicts with some
 other \pkg{tidyverse} functions that are vital to my workflow.
 }

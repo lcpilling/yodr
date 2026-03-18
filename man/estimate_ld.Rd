@@ -17,11 +17,11 @@ estimate_ld(df, tol = 1e-08, max_iter = 1000)
 A data.frame with haplotype freqs, allele freqs, D, D', and R²
 }
 \description{
-Genotype data in R is usually loaded as genotype counts of biallelic variants. Accurately estimating haplotype frequencies without phase information is challenging. The key ambiguity is for double heterozygotes (1/1): you can't tell if the haplotypes are A1-B1/A2-B2 or A1-B2/A2-B1. 
+Genotype data in R is usually loaded as genotype counts of biallelic variants. Accurately estimating haplotype frequencies without phase information is challenging. The key ambiguity is for double heterozygotes (1/1): you can't tell if the haplotypes are A1-B1/A2-B2 or A1-B2/A2-B1.
 
 To estimate haplotype frequency without the underlying haplotype phase we can use the Expectation-Maximisation (EM) algorithm by Excoffier & Slatkin (1995) (https://doi.org/10.1093/oxfordjournals.molbev.a040269). This function estimates the haplotype frequencies and returns the R^2 and D' statistics.
 
-Estimates highly similar to `plink2 --r2-phased cols=+dprimeabs` for several examples. This function is the combination of some of my older scripts plus input from Copilot.
+Estimates highly similar to \verb{plink2 --r2-phased cols=+dprimeabs} for several examples. This function is the combination of some of my older scripts plus input from Copilot.
 }
 \examples{
 

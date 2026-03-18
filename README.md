@@ -17,6 +17,7 @@ Note: v1.0.0 was functionally identical to [lukesRlib v0.2.13](https://github.co
 ## List of functions
   - [Hypothesis testing](#hypothesis-testing)
   - [Data Transformation](#data-transformation)
+  - [Attributable Fraction](#attributable-fraction)
   - [Working with test statistics](#working-with-test-statistics)
   - [Genetic epidemiology](#genetic-epidemiology)
   - [Plotting-related](#plotting-related)
@@ -164,6 +165,29 @@ x_z = z_trans(x)
 df = df |> mutate(x_z = z_trans(x))
 ```
 
+## Attributable Fraction
+
+### paf()
+
+Computes the attributable fraction in the exposed (AFE) and the population attributable fraction (PAF) with 95% Confidence Intervals (95% CIs) for a binary exposure (coded 0/1) and either:
+
+ - a binary outcome (prevalence / risk) when `y_t` is NULL, or
+ - a time-to-event outcome (incidence) using a Cox proportional hazards model when `y_t` is provided.
+
+```r
+# Binary exposure
+example_data$hypertension <- dplyr::if_else(example_data$sbp>=140, 1, 0)
+
+# Binary outcome (prevalence / risk)
+af <- paf(
+  d = example_data,
+  x = "hypertension",
+  y = "event"
+)
+cat(sprintf("PAF: %.2f%% (95%% CI: %.2f%% to %.2f%%)\n", af$paf_percent, af$paf_ci_lower_percent, af$paf_ci_upper_percent))
+#> PAF: 13.75% (95% CI: 10.84% to 16.71%)
+```
+
 ## Working with test statistics
 
 ### get_se()
@@ -242,7 +266,9 @@ get_p_neglog10_n(z, n)
 
 ## Genetic epidemiology
 
-### Estimate haplotype frequencies and LD statistics
+### estimate_ld()
+
+Function to estimate haplotype frequencies and LD statistics.
 
 Genotype data in R is usually loaded as genotype counts of biallelic variants. Accurately estimating haplotype frequencies without phase information is challenging. The key ambiguity is for double heterozygotes (1/1): you can't tell if the haplotypes are A1-B1/A2-B2 or A1-B2/A2-B1. 
 

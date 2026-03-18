@@ -4,6 +4,8 @@
  - `phewas` can now utilise more cores by running with `parallel=TRUE`
  - {parallelly} package added to dependencies
  - New function `estimate_ld` to estimate haplotype frequencies and LD statistics between two biallelic variants
+ - New function `paf` to estimate attributable fraction in the exposed (AFE) and population attributable fraction (PAF) with 95% CIs for a binary exposure (coded 0/1)
+   - Can be a simple binary outcome (prevalence / risk) or a time-to-event outcome (incidence) and uses a Cox proportional hazards model
 
 
 # yodr 1.0.0 (22nd Feb 2026)

@@ -1,7 +1,7 @@
 url: https://lcpilling.github.io/yodr/
 template:
   bootstrap: 5
-  light-switch: true
+  light-switch: false
 
 authors:
   Luke Pilling:
@@ -9,14 +9,17 @@ authors:
 
 reference:
 - title: "PheWAS"
-  desc: >
-    Get associations between a number of exposures and outcomes.
+  desc: "Get associations between a number of exposures and outcomes."
   contents: 
   - phewas
 - title: "Get summary statistics"
   desc: "'Tidy' model output with confidence intervals and other useful information."
   contents:
   - tidy
+- title: "Attributable fraction"
+  desc: "Estimate attributable fraction in the exposed (AFE) and population attributable fraction (PAF) with 95% CIs."
+  contents:
+  - paf
 - title: "Working with test statistics"
   desc: "Derived p-value, standard error (etc.) from other test statistics."
   contents:
