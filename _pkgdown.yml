@@ -32,6 +32,10 @@ reference:
   - carrec
   - inv_norm
   - z_trans
+- title: "Genetic epidemiology"
+  desc: "Tools for genetics"
+  contents:
+  - estimate_ld
 - title: "Plotting related"
   desc: "For working with plots."
   contents:
