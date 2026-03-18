@@ -1,8 +1,9 @@
-# yodr 1.1.0 (17th march 2026)
+# yodr 1.1.0 (17th March 2026)
 
 ### New features
  - `phewas` can now utilise more cores by running with `parallel=TRUE`
  - {parallelly} package added to dependencies
+ - New function `estimate_ld` to estimate haplotype frequencies and LD statistics between two biallelic variants
 
 
 # yodr 1.0.0 (22nd Feb 2026)
