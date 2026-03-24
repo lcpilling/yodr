@@ -4,6 +4,7 @@
 [![](https://img.shields.io/badge/version-1.1.1-informational.svg)](https://github.com/lcpilling/yodr)
 [![](https://img.shields.io/github/last-commit/lcpilling/yodr.svg)](https://github.com/lcpilling/yodr/commits/master)
 [![](https://img.shields.io/badge/lifecycle-experimental-orange)](https://www.tidyverse.org/lifecycle/#experimental)
+[![DOI](https://zenodo.org/badge/1164278540.svg)](https://doi.org/10.5281/zenodo.19135267)
 <!-- badges: end -->
 
 yodr (phonetically: "Yoda") is a small R package with tools for epidemiology and hypothesis testing. 
