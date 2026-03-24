@@ -1,7 +1,7 @@
 # yodr <a href="https://lcpilling.github.io/yodr/"><img src="man/figures/yodr.png" align="right" width="175" /></a>
 
 <!-- badges: start -->
-[![](https://img.shields.io/badge/version-1.1.0-informational.svg)](https://github.com/lcpilling/yodr)
+[![](https://img.shields.io/badge/version-1.1.1-informational.svg)](https://github.com/lcpilling/yodr)
 [![](https://img.shields.io/github/last-commit/lcpilling/yodr.svg)](https://github.com/lcpilling/yodr/commits/master)
 [![](https://img.shields.io/badge/lifecycle-experimental-orange)](https://www.tidyverse.org/lifecycle/#experimental)
 <!-- badges: end -->
@@ -186,6 +186,8 @@ af <- paf(
 )
 cat(sprintf("PAF: %.2f%% (95%% CI: %.2f%% to %.2f%%)\n", af$paf_percent, af$paf_ci_lower_percent, af$paf_ci_upper_percent))
 #> PAF: 13.75% (95% CI: 10.84% to 16.71%)
+cat(sprintf("Excess cases in the exposued: %1.0f (95%% CI: %1.0f to %1.0f)\n", af$excess_cases_exposed, af$excess_cases_exposed_ci_lower, af$excess_cases_exposed_ci_upper))
+#> Excess cases in the exposued: 203 (95% CI: 168 to 234)
 ```
 
 ## Working with test statistics

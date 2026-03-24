@@ -4,7 +4,7 @@
 \alias{paf}
 \title{Estimate attributable fraction in the exposed (AFE) and population attributable fraction (PAF)}
 \usage{
-paf(d, x, y, y_t = NULL, z = "", verbose = FALSE)
+paf(d, x, y, y_t = NULL, z = "", n_boot = 0L, verbose = FALSE)
 }
 \arguments{
 \item{d}{A data frame containing exposure, outcome, and (optionally) follow-up time and covariates.}
@@ -15,15 +15,20 @@ paf(d, x, y, y_t = NULL, z = "", verbose = FALSE)
 
 \item{y_t}{Character string. Optional column name of follow-up time for time-to-event analyses.
 Ideally this is in years, as crude incidence rates (per 1,000 person-years) are also returned.
-If not provided then treats \code{y} as a binary outcome and estimates RR-based AFE/PAF.
+If not provided then treats \code{y} as a binary outcome and estimates AFE/PAF.
 \code{default=NULL} (character)}
 
-\item{z}{A string. The covariate formula (e.g., "+age+sex") for variables found in \code{d}. Only used for time-to-event.
-If not provided then the survival model runs without adjustment.
+\item{z}{A string. Covariate formula additions (e.g., "+age+sex") for variables found in \code{d}.
+If \code{y_t} is provided, covariates are included in the Cox model.
+If \code{y_t} is \code{NULL} and \code{z != ""}, covariates are included in a logistic regression and AFE/PAF are
+estimated by standardisation (g-formula).
 \code{default=""} (character)}
 
-\item{verbose}{Logical. Be verbose,
-\code{default=FALSE}}
+\item{n_boot}{Integer. Number of bootstrap replicates for adjusted (logistic) binary-outcome AFE/PAF.
+Only used when \code{y_t} is \code{NULL} and \code{z != ""}. If 0 then no bootstrap CIs are computed.
+\code{default=0} (integer)}
+
+\item{verbose}{Logical. Be verbose, \code{default=FALSE}.}
 }
 \value{
 A data frame containing AFE and PAF (as proportions and percentages) with 95\% CIs and p-values,
@@ -37,12 +42,19 @@ with 95\% Confidence Intervals (95\% CIs) for a binary exposure (coded 0/1) and 
 \item a time-to-event outcome (incidence) using a Cox proportional hazards model when \code{y_t} is provided.
 }
 
-For the binary-outcome case, risks are estimated as group-wise means and the relative risk (RR) is
+Binary-outcome case:
+\itemize{
+\item If \code{z == ""} then risks are estimated as group-wise means and the relative risk (RR) is
 \code{risk_exposed / risk_unexposed}. Wald 95\% confidence intervals are calculated on the log(RR) scale
 using a delta-method standard error, then transformed to RR, AFE, and PAF.
+\item If \code{z != ""} (i.e., covariates provided) then a logistic regression is fitted and adjusted AFE/PAF are estimated
+by standardisation (g-formula): mean predicted risks under observed exposure and counterfactual exposure assignments.
+If \code{n_boot > 0}, non-parametric bootstrap 95\% CIs are returned for AFE/PAF.
+}
 
-For the time-to-event case, a Cox model is fitted and the hazard ratio (HR) for exposure is used as the
-effect measure. Wald 95\% confidence intervals are taken from the Cox model, then transformed to AFE and PAF.
+Time-to-event case:
+A Cox model is fitted and the hazard ratio (HR) for exposure is used as the effect measure.
+Wald 95\% confidence intervals are taken from the Cox model, then transformed to AFE and PAF.
 Crude incidence rates (per 1,000 person-years) are also returned by exposure group (assumes time is in years).
 }
 \details{
@@ -53,37 +65,37 @@ Crude incidence rates (per 1,000 person-years) are also returned by exposure gro
 \item For the time-to-event case, \code{y} is the event indicator (0/1) and \code{y_t}
 is follow-up time (in years if you want rates per 1,000 person-years).
 }
-
-Model note (time-to-event): the Cox model is not adjusted by default. User can provide covariae string.
 }
 \examples{
 
 # Binary exposure
 example_data$hypertension <- dplyr::if_else(example_data$sbp>=140, 1, 0)
 
-# Binary outcome (prevalence / risk)
-result_1 <- paf(
+# Binary outcome (prevalence / risk) crude
+res1 <- paf(
   d = example_data,
   x = "hypertension",
   y = "event"
 )
-cat(sprintf("PAF: \%.2f\%\% (95\%\% CI: \%.2f\%\% to \%.2f\%\%)\n",
-            result_1$paf_percent,
-            result_1$paf_ci_lower_percent,
-            result_1$paf_ci_upper_percent))
+
+# Binary outcome adjusted with bootstrap CIs
+res1_adj <- paf(
+  d = example_data,
+  x = "hypertension",
+  y = "event",
+  z = "age+sex",
+  n_boot = 200
+)
 
 # Time-to-event outcome (incidence)
-result_2 <- paf(
+res2 <- paf(
   d = example_data,
   x = "hypertension",
   y = "event",
   y_t = "time",
   z = "age+sex"
 )
-cat(sprintf("PAF: \%.2f\%\% (95\%\% CI: \%.2f\%\% to \%.2f\%\%)\n",
-            result_2$paf_percent,
-            result_2$paf_ci_lower_percent,
-            result_2$paf_ci_upper_percent))
+
 
 }
 \author{

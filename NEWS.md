@@ -1,3 +1,11 @@
+# yodr 1.1.1 (24th March 2026)
+
+### Changes
+ - `paf()` can now:
+   - estimate AFE/PAF from adjusted logistic regression models. CIs estimated from non-parametric bootstrap.
+   - provides estimates of the excess cases in the exposed (with 95% CIs)
+   - other improvements to estimates and output generally
+
 # yodr 1.1.0 (17th March 2026)
 
 ### New features
