@@ -275,6 +275,9 @@ paf <- function(
       }
 
       res <- data.frame(
+        x = x,
+        y = y,
+
         # attributable fraction in exposed
         afe = afe,
         afe_ci_lower = afe_ci_lower,
@@ -308,8 +311,6 @@ paf <- function(
         excess_cases_exposed = excess_cases_exposed,
         excess_cases_exposed_ci_lower = excess_cases_exposed_ci_lower,
         excess_cases_exposed_ci_upper = excess_cases_exposed_ci_upper,
-        x = x,
-        y = y,
         z = z,
         n_boot = n_boot
       )
@@ -357,6 +358,9 @@ paf <- function(
       excess_cases_exposed_ci_upper <- afe_ci_upper * n_cases_exposed
 
       res <- data.frame(
+        x = x,
+        y = y,
+
         # attributable fraction in exposed
         afe = afe,
         afe_ci_lower = afe_ci_lower,
@@ -392,9 +396,7 @@ paf <- function(
         excess_risk = p_e - p_u,
         excess_cases_exposed = excess_cases_exposed,
         excess_cases_exposed_ci_lower = excess_cases_exposed_ci_lower,
-        excess_cases_exposed_ci_upper = excess_cases_exposed_ci_upper,
-        x = x,
-        y = y
+        excess_cases_exposed_ci_upper = excess_cases_exposed_ci_upper
       )
     }
   }
@@ -471,6 +473,10 @@ paf <- function(
       dplyr::pull(rate_per_1000py)
 
     res <- data.frame(
+      x = x,
+      y = y,
+      y_t = y_t,
+
       # attributable fraction in exposed (main result)
       afe = afe,
       afe_ci_lower = afe_ci_lower,
@@ -504,9 +510,6 @@ paf <- function(
       hr_p_value = hr_p_value,
       rate_exposed_per_1000py = rate_exposed,
       rate_unexposed_per_1000py = rate_unexposed,
-      x = x,
-      y = y,
-      y_t = y_t,
       z = z
     )
     rownames(res) <- NULL
