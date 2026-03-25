@@ -6,11 +6,9 @@
 #' * a time-to-event outcome (incidence) using a Cox proportional hazards model when `y_t` is provided.
 #'
 #' Binary-outcome case:
-#' * If `z == ""` then risks are estimated as group-wise means and the relative risk (RR) is
-#'   `risk_exposed / risk_unexposed`. Wald 95% confidence intervals are calculated on the log(RR) scale
-#'   using a delta-method standard error, then transformed to RR, AFE, and PAF.
-#' * If `z != ""` (i.e., covariates provided) then a logistic regression is fitted and adjusted AFE/PAF are estimated 
-#'   by standardisation (g-formula): mean predicted risks under observed exposure and counterfactual exposure assignments.
+#' * A logistic regression is fitted and AFE/PAF are estimated by standardisation (g-formula): 
+#'   mean predicted risks under observed exposure and counterfactual exposure assignments
+#' * If `z != ""` (i.e., covariates provided) then the logistic regression is adjusted.
 #'   If `n_boot > 0`, non-parametric bootstrap 95% CIs are returned for AFE/PAF.
 #'
 #' Time-to-event case:
@@ -27,7 +25,7 @@
 #'
 #' @return
 #' A data frame containing AFE and PAF (as proportions and percentages) with 95% CIs and p-values,
-#' plus supporting statistics (RR/HR, group risks or rates, counts, and exposure prevalence).
+#' plus supporting statistics (counts, ORs, excess cases in the exposed, etc.).
 #'
 #' @param d A data frame containing exposure, outcome, and (optionally) follow-up time and covariates.
 #' @param x Character string. Column name of the exposure variable (expected 0/1).
@@ -51,22 +49,34 @@
 #' # Binary exposure
 #' example_data$hypertension <- dplyr::if_else(example_data$sbp>=140, 1, 0)
 #'
+#'  
 #' # Binary outcome (prevalence / risk) crude
 #' res1 <- paf(
 #'   d = example_data,
 #'   x = "hypertension",
 #'   y = "event"
 #' )
-#'
-#' # Binary outcome adjusted with bootstrap CIs
+#' 
+#' # Binary outcome adjusted
 #' res1_adj <- paf(
 #'   d = example_data,
 #'   x = "hypertension",
 #'   y = "event",
 #'   z = "age+sex",
-#'   n_boot = 200
+#'   n_boot = 0
 #' )
-#'
+#' 
+#' # Binary outcome adjusted
+#' res1_adj_cis <- paf(
+#'   d = example_data,
+#'   x = "hypertension",
+#'   y = "event",
+#'   z = "age+sex",
+#'   n_boot = 100
+#' )
+#' 
+#' #rbind(res1, res1_adj, res1_adj_cis)
+#' 
 #' # Time-to-event outcome (incidence)
 #' res2 <- paf(
 #'   d = example_data,
@@ -75,7 +85,6 @@
 #'   y_t = "time",
 #'   z = "age+sex"
 #' )
-#'
 #'
 #' @author Luke Pilling
 #'
@@ -156,7 +165,8 @@ paf <- function(
       n = dplyr::n(),
       n_cases = sum(!!rlang::sym(y), na.rm = TRUE)
     )
-
+  
+  # get proportions and numbers
   p_e <- p_exposed_df$prev
   p_u <- p_unexposed_df$prev
   n_e <- p_exposed_df$n
@@ -167,238 +177,170 @@ paf <- function(
   # total sample size and cases
   n_total <- n_e + n_u
   prop_exposed <- n_e / n_total
-
-  # for binary outcome (prevalence)
+  
+  # for binary outcome
   if (is.null(y_t)) {
 
-    # adjusted (logistic + standardisation) if covariates provided
-    if (z != "") {
+    if (verbose) cli::cli_alert("Fitting logistic regression for adjusted AFE/PAF (standardisation)")
 
-      if (verbose) cli::cli_alert("Fitting logistic regression for adjusted AFE/PAF (standardisation)")
+    # coding checks on complete-case dataset
+    if (!all(d[[x]] %in% c(0, 1))) stop("x must be coded 0/1 for adjusted AFE/PAF")
+    if (!all(d[[y]] %in% c(0, 1))) stop("y must be coded 0/1 for adjusted AFE/PAF")
 
-      # coding checks on complete-case dataset
-      if (!all(d[[x]] %in% c(0, 1))) stop("x must be coded 0/1 for adjusted AFE/PAF")
-      if (!all(d[[y]] %in% c(0, 1))) stop("y must be coded 0/1 for adjusted AFE/PAF")
-
-      # helper: compute adjusted risks + fractions from a fitted model and data
-      calc_adj_from_glm <- function(glm_fit, d_fit, x, y) {
-        p_obs <- stats::predict(glm_fit, type = "response")
-
-        d_cf0 <- d_fit
-        d_cf0[[x]] <- 0
-        p_cf0 <- stats::predict(glm_fit, newdata = d_cf0, type = "response")
-
-        d_cf1 <- d_fit
-        d_cf1[[x]] <- 1
-        p_cf1 <- stats::predict(glm_fit, newdata = d_cf1, type = "response")
-
-        risk_obs <- mean(p_obs)
-        risk_cf0 <- mean(p_cf0)
-        risk_cf1 <- mean(p_cf1)
-
-        paf <- 1 - (risk_cf0 / risk_obs)
-        afe <- 1 - (risk_cf0 / risk_cf1)
-
-        list(
-          risk_observed = risk_obs,
-          risk_counterfactual_unexposed = risk_cf0,
-          risk_counterfactual_exposed = risk_cf1,
-          paf = paf,
-          afe = afe
-        )
-      }
-
-      glm_formula <- stats::as.formula(paste0(y, " ~ ", x, z))
-      glm_fit <- stats::glm(glm_formula, data = d, family = stats::binomial())
-
-      adj <- calc_adj_from_glm(glm_fit = glm_fit, d_fit = d, x = x, y = y)
-
-      paf <- adj$paf
-      afe <- adj$afe
-      excess_cases_exposed <- n_e * (adj$risk_counterfactual_exposed - adj$risk_counterfactual_unexposed)
-
-      # bootstrap CIs (complete-case dataset)
-      paf_ci_lower <- NA_real_
-      paf_ci_upper <- NA_real_
-      afe_ci_lower <- NA_real_
-      afe_ci_upper <- NA_real_
-      z_paf <- NA_real_
-      z_afe <- NA_real_
-      paf_p_value <- NA_real_
-      afe_p_value <- NA_real_
-      excess_cases_exposed_ci_lower <- NA_real_
-      excess_cases_exposed_ci_upper <- NA_real_
-
-      if (n_boot > 0L) {
-
-        cli::cli_alert("Bootstrapping adjusted AFE/PAF CIs with {n_boot} iterations (can take a while)")
-
-        n <- nrow(d)
-
-        boot_res <- purrr::map_dfr(seq_len(n_boot), \(b) {
-          boot_idx <- sample.int(n = n, size = n, replace = TRUE)
-          d_boot <- d[boot_idx, , drop = FALSE]
-
-          glm_boot <- stats::glm(glm_formula, data = d_boot, family = stats::binomial())
-          adj_boot <- calc_adj_from_glm(glm_fit = glm_boot, d_fit = d_boot, x = x, y = y)
-          n_exposed_boot <- sum(d_boot[[x]] == 1)
-
-          data.frame(
-            paf = adj_boot$paf,
-            afe = adj_boot$afe,
-            excess_cases_exposed_adj = n_exposed_boot * (adj_boot$risk_counterfactual_exposed - adj_boot$risk_counterfactual_unexposed)
-          )
-        })
-
-        # bootstrap se and z (normal approximation)
-        se_paf <- stats::sd(boot_res$paf, na.rm = TRUE)
-        se_afe <- stats::sd(boot_res$afe, na.rm = TRUE)
-        
-        paf_ci_lower <- paf - (1.959964 * se_paf)
-        paf_ci_upper <- paf + (1.959964 * se_paf)
-        
-        afe_ci_lower <- afe - (1.959964 * se_afe)
-        afe_ci_upper <- afe + (1.959964 * se_afe)
-        
-        z_paf <- paf / se_paf
-        z_afe <- afe / se_afe
-        
-        paf_p_value <- 2 * stats::pnorm(-abs(z_paf))
-        afe_p_value <- 2 * stats::pnorm(-abs(z_afe))
-
-        excess_cases_exposed_ci_lower <- stats::quantile(
-          boot_res$excess_cases_exposed_adj, probs = 0.025, na.rm = TRUE, names = FALSE
-        )
-        excess_cases_exposed_ci_upper <- stats::quantile(
-          boot_res$excess_cases_exposed_adj, probs = 0.975, na.rm = TRUE, names = FALSE
-        )
-      }
-
-      res <- data.frame(
-        x = x,
-        y = y,
-
-        # attributable fraction in exposed
-        afe = afe,
-        afe_ci_lower = afe_ci_lower,
-        afe_ci_upper = afe_ci_upper,
-        afe_percent = afe * 100,
-        afe_ci_lower_percent = afe_ci_lower * 100,
-        afe_ci_upper_percent = afe_ci_upper * 100,
-        afe_z = z_afe,
-        afe_p_value = afe_p_value,
-
-        # population attributable fraction
+    # helper: compute adjusted risks + fractions from a fitted model and data
+    calc_adj_from_glm <- function(glm_fit, d_fit, x, y) {
+      # predicted risk under observed exposure values (as in d_fit)
+	  p_obs <- stats::predict(glm_fit, type = "response")
+	  
+	  # counterfactual: set everyone to unexposed (x=0), predict risk
+      d_cf0 <- d_fit
+      d_cf0[[x]] <- 0
+      p_cf0 <- stats::predict(glm_fit, newdata = d_cf0, type = "response")
+	  
+	  # counterfactual: set everyone to exposed (x=1), predict risk
+      d_cf1 <- d_fit
+      d_cf1[[x]] <- 1
+      p_cf1 <- stats::predict(glm_fit, newdata = d_cf1, type = "response")
+	  
+	  # population-average (standardised) risks for each scenario
+      risk_obs <- mean(p_obs)
+      risk_cf0 <- mean(p_cf0)
+      risk_cf1 <- mean(p_cf1)
+	  
+	  # adjusted fractions via g-formula (risk-based), not OR-based
+      paf <- 1 - (risk_cf0 / risk_obs)
+      afe <- 1 - (risk_cf0 / risk_cf1)
+	  
+      list(
+        risk_observed = risk_obs,
+        risk_counterfactual_unexposed = risk_cf0,
+        risk_counterfactual_exposed = risk_cf1,
         paf = paf,
-        paf_ci_lower = paf_ci_lower,
-        paf_ci_upper = paf_ci_upper,
-        paf_percent = paf * 100,
-        paf_ci_lower_percent = paf_ci_lower * 100,
-        paf_ci_upper_percent = paf_ci_upper * 100,
-        paf_z = z_paf,
-        paf_p_value = paf_p_value,
-
-        # supporting statistics
-        n_total = n_total,
-        n_exposed = n_e,
-        n_unexposed = n_u,
-        n_cases_exposed = n_cases_exposed,
-        n_cases_unexposed = n_cases_unexposed,
-        prop_exposed = prop_exposed,
-        risk_observed = adj$risk_observed,
-        risk_counterfactual_unexposed = adj$risk_counterfactual_unexposed,
-        risk_counterfactual_exposed = adj$risk_counterfactual_exposed,
-        excess_cases_exposed = excess_cases_exposed,
-        excess_cases_exposed_ci_lower = excess_cases_exposed_ci_lower,
-        excess_cases_exposed_ci_upper = excess_cases_exposed_ci_upper,
-        z = z,
-        n_boot = n_boot
-      )
-
-    } else {
-
-      # crude RR method
-      if (verbose) cli::cli_alert("Estimating Relative Risk (RR)\n")
-
-      # calculate relative risk
-      rr <- p_e / p_u
-
-      # se of log(rr) using delta method
-      se_log_rr <- sqrt((1 - p_e) / (n_e * p_e) + (1 - p_u) / (n_u * p_u))
-
-      # 95% ci for rr
-      rr_ci_lower <- exp(log(rr) - 1.959964 * se_log_rr)
-      rr_ci_upper <- exp(log(rr) + 1.959964 * se_log_rr)
-
-      if (verbose) cat("Estimating AFE and PAF\n")
-
-      # attributable fraction in exposed: afe = (rr - 1) / rr
-      afe <- (rr - 1) / rr
-      afe_ci_lower <- (rr_ci_lower - 1) / rr_ci_lower
-      afe_ci_upper <- (rr_ci_upper - 1) / rr_ci_upper
-
-      # se of afe using delta method: se(afe) = se(log(rr)) / rr
-      se_afe <- se_log_rr / rr
-      z_afe <- afe / se_afe
-      p_value_afe <- 2 * stats::pnorm(-abs(z_afe))
-
-      # population attributable fraction: paf = p_e * (rr - 1) / (p_e * (rr - 1) + 1)
-      paf <- prop_exposed * (rr - 1) / (prop_exposed * (rr - 1) + 1)
-      paf_ci_lower <- prop_exposed * (rr_ci_lower - 1) / (prop_exposed * (rr_ci_lower - 1) + 1)
-      paf_ci_upper <- prop_exposed * (rr_ci_upper - 1) / (prop_exposed * (rr_ci_upper - 1) + 1)
-
-      # se of paf using delta method
-      se_paf <- se_log_rr * prop_exposed / ((prop_exposed * (rr - 1) + 1) * rr)
-      z_paf <- paf / se_paf
-      p_value_paf <- 2 * stats::pnorm(-abs(z_paf))
-
-      # number of excess cases in exposed
-      excess_cases_exposed <- afe * n_cases_exposed
-      excess_cases_exposed_ci_lower <- afe_ci_lower * n_cases_exposed
-      excess_cases_exposed_ci_upper <- afe_ci_upper * n_cases_exposed
-
-      res <- data.frame(
-        x = x,
-        y = y,
-
-        # attributable fraction in exposed
-        afe = afe,
-        afe_ci_lower = afe_ci_lower,
-        afe_ci_upper = afe_ci_upper,
-        afe_percent = afe * 100,
-        afe_ci_lower_percent = afe_ci_lower * 100,
-        afe_ci_upper_percent = afe_ci_upper * 100,
-        afe_z = z_afe,
-        afe_p_value = p_value_afe,
-
-        # population attributable fraction
-        paf = paf,
-        paf_ci_lower = paf_ci_lower,
-        paf_ci_upper = paf_ci_upper,
-        paf_percent = paf * 100,
-        paf_ci_lower_percent = paf_ci_lower * 100,
-        paf_ci_upper_percent = paf_ci_upper * 100,
-        paf_z = z_paf,
-        paf_p_value = p_value_paf,
-
-        # supporting statistics
-        n_total = n_total,
-        n_exposed = n_e,
-        n_unexposed = n_u,
-        n_cases_exposed = n_cases_exposed,
-        n_cases_unexposed = n_cases_unexposed,
-        prop_exposed = prop_exposed,
-        relative_risk = rr,
-        rr_ci_lower = rr_ci_lower,
-        rr_ci_upper = rr_ci_upper,
-        risk_exposed = p_e,
-        risk_unexposed = p_u,
-        excess_risk = p_e - p_u,
-        excess_cases_exposed = excess_cases_exposed,
-        excess_cases_exposed_ci_lower = excess_cases_exposed_ci_lower,
-        excess_cases_exposed_ci_upper = excess_cases_exposed_ci_upper
+        afe = afe
       )
     }
+
+    # fit GLM
+    glm_formula <- stats::as.formula(paste0(y, " ~ ", x, z))
+    glm_fit <- stats::glm(glm_formula, data = d, family = stats::binomial())
+    glm_fit_tidy <- as.data.frame(yodr::tidy(glm_fit, quiet=TRUE))
+    
+    # compute adjusted risks + fractions from a fitted model and data
+    adj <- calc_adj_from_glm(glm_fit = glm_fit, d_fit = d, x = x, y = y)
+    paf <- adj$paf
+    afe <- adj$afe
+    excess_cases_exposed <- n_e * (adj$risk_counterfactual_exposed - adj$risk_counterfactual_unexposed)
+
+    # bootstrap CIs (complete-case dataset)
+    paf_ci_lower <- NA_real_
+    paf_ci_upper <- NA_real_
+    afe_ci_lower <- NA_real_
+    afe_ci_upper <- NA_real_
+    z_paf <- NA_real_
+    z_afe <- NA_real_
+    paf_p_value <- NA_real_
+    afe_p_value <- NA_real_
+    excess_cases_exposed_ci_lower <- NA_real_
+    excess_cases_exposed_ci_upper <- NA_real_
+
+    if (n_boot > 0L) {
+  
+      cli::cli_alert("Bootstrapping adjusted AFE/PAF CIs with {n_boot} iterations (can take a while)")
+  
+      n <- nrow(d)
+  
+      boot_res <- purrr::map_dfr(seq_len(n_boot), \(b) {
+        boot_idx <- sample.int(n = n, size = n, replace = TRUE)
+        d_boot <- d[boot_idx, , drop = FALSE]
+  
+        glm_boot <- stats::glm(glm_formula, data = d_boot, family = stats::binomial())
+        adj_boot <- calc_adj_from_glm(glm_fit = glm_boot, d_fit = d_boot, x = x, y = y)
+        n_exposed_boot <- sum(d_boot[[x]] == 1)
+  
+        data.frame(
+        paf = adj_boot$paf,
+        afe = adj_boot$afe,
+        excess_cases_exposed_adj = n_exposed_boot * (adj_boot$risk_counterfactual_exposed - adj_boot$risk_counterfactual_unexposed)
+        )
+      })
+  
+      # bootstrap se and z (normal approximation)
+      se_paf <- stats::sd(boot_res$paf, na.rm = TRUE)
+      se_afe <- stats::sd(boot_res$afe, na.rm = TRUE)
+      
+      paf_ci_lower <- paf - (1.959964 * se_paf)
+      paf_ci_upper <- paf + (1.959964 * se_paf)
+      
+      afe_ci_lower <- afe - (1.959964 * se_afe)
+      afe_ci_upper <- afe + (1.959964 * se_afe)
+      
+      z_paf <- paf / se_paf
+      z_afe <- afe / se_afe
+      
+      paf_p_value <- 2 * stats::pnorm(-abs(z_paf))
+      afe_p_value <- 2 * stats::pnorm(-abs(z_afe))
+  
+      excess_cases_exposed_ci_lower <- stats::quantile(
+        boot_res$excess_cases_exposed_adj, probs = 0.025, na.rm = TRUE, names = FALSE
+      )
+      excess_cases_exposed_ci_upper <- stats::quantile(
+        boot_res$excess_cases_exposed_adj, probs = 0.975, na.rm = TRUE, names = FALSE
+      )
+    }
+    
+    # collect results to return
+    res <- data.frame(
+      y = y,
+      x = x,
+      
+      # sample size
+      n_total = n_total,
+      n_exposed = n_e,
+      n_unexposed = n_u,
+      n_cases_exposed = n_cases_exposed,
+      n_cases_unexposed = n_cases_unexposed,
+      prop_exposed = prop_exposed,
+      
+      # logistic regression output
+      or = glm_fit_tidy[1,"estimate"],
+      or_ci_lower = glm_fit_tidy[1,"conf.low"],
+      or_ci_lower = glm_fit_tidy[1,"conf.high"],
+      or_z = glm_fit_tidy[1,"statistic"],
+      or_p = glm_fit_tidy[1,"p.value"],
+	  
+      # population attributable fraction
+      paf = paf,
+      paf_ci_lower = paf_ci_lower,
+      paf_ci_upper = paf_ci_upper,
+      paf_percent = paf * 100,
+      paf_ci_lower_percent = paf_ci_lower * 100,
+      paf_ci_upper_percent = paf_ci_upper * 100,
+      paf_z = z_paf,
+      paf_p_value = paf_p_value,
+
+      # attributable fraction in exposed
+      afe = afe,
+      afe_ci_lower = afe_ci_lower,
+      afe_ci_upper = afe_ci_upper,
+      afe_percent = afe * 100,
+      afe_ci_lower_percent = afe_ci_lower * 100,
+      afe_ci_upper_percent = afe_ci_upper * 100,
+      afe_z = z_afe,
+      afe_p_value = afe_p_value,
+	  
+      # excess cases in the exposed
+      excess_cases_exposed = excess_cases_exposed,
+      excess_cases_exposed_ci_lower = excess_cases_exposed_ci_lower,
+      excess_cases_exposed_ci_upper = excess_cases_exposed_ci_upper,
+	  
+      # supporting statistics
+      risk_observed = adj$risk_observed,
+      risk_counterfactual_unexposed = adj$risk_counterfactual_unexposed,
+      risk_counterfactual_exposed = adj$risk_counterfactual_exposed,
+      z = z,
+      n_boot = n_boot
+    )
+
   }
 
   # for time-to-event outcome (incidence)
@@ -409,21 +351,16 @@ paf <- function(
     if (!y_t %in% colnames(d)) cat("!! Outcome time variable `y_t` not in the provided data frame\n")
 
     # fit cox model
-    surv_obj <- survival::Surv(
-      time = d[[y_t]],
-      event = d[[y]]
-    )
-
-    cox_model <- survival::coxph(
-      stats::as.formula(paste0("surv_obj ~ factor(", x, ")", z)),
-      data = d
-    )
+    surv_obj <- survival::Surv(time = d[[y_t]], event = d[[y]])
+    cox_formula <- stats::as.formula(paste0("surv_obj ~ factor(", x, ")", z))
+    cox_fit <- survival::coxph(cox_formula, data = d)
+    cox_fit_tidy <- as.data.frame(yodr::tidy(cox_fit, quiet=TRUE))
 
     # hazard ratio, ci, and p-value
-    hr <- exp(coef(cox_model)[1])
-    hr_ci <- exp(confint(cox_model)[1, ])
-    hr_p_value <- summary(cox_model)$coefficients[1, "Pr(>|z|)"]
-
+    hr <- cox_fit_tidy[1,"estimate"]
+    hr_ci <- c(cox_fit_tidy[1,"conf.low"], cox_fit_tidy[1,"conf.high"])
+    hr_p_value <- cox_fit_tidy[1,"p.value"]
+    
     if (verbose) cat("Transforming estimates to AFE and PAF\n")
 
     # proportion exposed
@@ -437,7 +374,7 @@ paf <- function(
     afe_ci_upper <- (hr_ci[2] - 1) / hr_ci[2]
 
     # se of log(hr)
-    se_log_hr <- sqrt(summary(cox_model)$coefficients[1, "se(coef)"]^2)
+    se_log_hr <- cox_fit_tidy[1,"statistic"]
 
     # se of afe using delta method
     se_afe <- se_log_hr / hr
@@ -473,19 +410,23 @@ paf <- function(
       dplyr::pull(rate_per_1000py)
 
     res <- data.frame(
-      x = x,
       y = y,
-      y_t = y_t,
+      x = x,
 
-      # attributable fraction in exposed (main result)
-      afe = afe,
-      afe_ci_lower = afe_ci_lower,
-      afe_ci_upper = afe_ci_upper,
-      afe_percent = afe * 100,
-      afe_ci_lower_percent = afe_ci_lower * 100,
-      afe_ci_upper_percent = afe_ci_upper * 100,
-      afe_z = z_afe,
-      afe_p_value = afe_p_value,
+      # sample size
+      n_total = n_total,
+      n_exposed = n_e,
+      n_unexposed = n_u,
+      n_cases_exposed = n_cases_exposed,
+      n_cases_unexposed = n_cases_unexposed,
+      prop_exposed = prop_exposed,
+      
+      # logistic regression output
+      hr = cox_fit_tidy[1,"estimate"],
+      hr_ci_lower = cox_fit_tidy[1,"conf.low"],
+      hr_ci_lower = cox_fit_tidy[1,"conf.high"],
+      hr_z = cox_fit_tidy[1,"statistic"],
+      hr_p = cox_fit_tidy[1,"p.value"],
 
       # population attributable fraction
       paf = paf,
@@ -496,20 +437,21 @@ paf <- function(
       paf_ci_upper_percent = paf_ci_upper * 100,
       paf_z = z_paf,
       paf_p_value = paf_p_value,
+    
+      # attributable fraction in exposed (main result)
+      afe = afe,
+      afe_ci_lower = afe_ci_lower,
+      afe_ci_upper = afe_ci_upper,
+      afe_percent = afe * 100,
+      afe_ci_lower_percent = afe_ci_lower * 100,
+      afe_ci_upper_percent = afe_ci_upper * 100,
+      afe_z = z_afe,
+      afe_p_value = afe_p_value,
 
       # supporting statistics
-      n_total = n_total,
-      n_exposed = n_e,
-      n_unexposed = n_u,
-      n_cases_exposed = n_cases_exposed,
-      n_cases_unexposed = n_cases_unexposed,
-      prop_exposed = prop_exposed,
-      hazard_ratio = hr,
-      hr_ci_lower = hr_ci[1],
-      hr_ci_upper = hr_ci[2],
-      hr_p_value = hr_p_value,
       rate_exposed_per_1000py = rate_exposed,
       rate_unexposed_per_1000py = rate_unexposed,
+      y_t = y_t,
       z = z
     )
     rownames(res) <- NULL

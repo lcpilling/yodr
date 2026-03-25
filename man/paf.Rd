@@ -32,7 +32,7 @@ Only used when \code{y_t} is \code{NULL} and \code{z != ""}. If 0 then no bootst
 }
 \value{
 A data frame containing AFE and PAF (as proportions and percentages) with 95\% CIs and p-values,
-plus supporting statistics (RR/HR, group risks or rates, counts, and exposure prevalence).
+plus supporting statistics (counts, ORs, excess cases in the exposed, etc.).
 }
 \description{
 Computes the attributable fraction in the exposed (AFE) and the population attributable fraction (PAF)
@@ -44,11 +44,9 @@ with 95\% Confidence Intervals (95\% CIs) for a binary exposure (coded 0/1) and 
 
 Binary-outcome case:
 \itemize{
-\item If \code{z == ""} then risks are estimated as group-wise means and the relative risk (RR) is
-\code{risk_exposed / risk_unexposed}. Wald 95\% confidence intervals are calculated on the log(RR) scale
-using a delta-method standard error, then transformed to RR, AFE, and PAF.
-\item If \code{z != ""} (i.e., covariates provided) then a logistic regression is fitted and adjusted AFE/PAF are estimated
-by standardisation (g-formula): mean predicted risks under observed exposure and counterfactual exposure assignments.
+\item A logistic regression is fitted and AFE/PAF are estimated by standardisation (g-formula):
+mean predicted risks under observed exposure and counterfactual exposure assignments
+\item If \code{z != ""} (i.e., covariates provided) then the logistic regression is adjusted.
 If \code{n_boot > 0}, non-parametric bootstrap 95\% CIs are returned for AFE/PAF.
 }
 
@@ -71,6 +69,7 @@ is follow-up time (in years if you want rates per 1,000 person-years).
 # Binary exposure
 example_data$hypertension <- dplyr::if_else(example_data$sbp>=140, 1, 0)
 
+ 
 # Binary outcome (prevalence / risk) crude
 res1 <- paf(
   d = example_data,
@@ -78,14 +77,25 @@ res1 <- paf(
   y = "event"
 )
 
-# Binary outcome adjusted with bootstrap CIs
+# Binary outcome adjusted
 res1_adj <- paf(
   d = example_data,
   x = "hypertension",
   y = "event",
   z = "age+sex",
-  n_boot = 200
+  n_boot = 0
 )
+
+# Binary outcome adjusted
+res1_adj_cis <- paf(
+  d = example_data,
+  x = "hypertension",
+  y = "event",
+  z = "age+sex",
+  n_boot = 100
+)
+
+#rbind(res1, res1_adj, res1_adj_cis)
 
 # Time-to-event outcome (incidence)
 res2 <- paf(
@@ -95,7 +105,6 @@ res2 <- paf(
   y_t = "time",
   z = "age+sex"
 )
-
 
 }
 \author{
