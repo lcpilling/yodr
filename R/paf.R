@@ -276,13 +276,10 @@ paf <- function(
       # sequential or parallel?
       if (parallel) {
 		cli::cli_alert("Using parallel processing with {n_child} child processes")
-		dots <- list(...)
-		mc_preschedule <- dots$mc_preschedule %||% TRUE
         boot_res_list <- parallel::mclapply(
           X = seq_len(n_boot),
           FUN = do_boot,
-          mc.cores = n_child,
-          mc.preschedule = mc_preschedule
+          mc.cores = n_child
         )
         boot_res <- boot_res_list |> purrr::list_rbind()
       } else {

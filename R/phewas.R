@@ -12,8 +12,6 @@
 #' 
 #' Options to return estimates for all independent variables in the model (not just the exposure of interest) and to include interaction terms with a specified variable.
 #' 
-#' 
-#'
 #' @return Returns a tibble - summary statistics from a model 
 #'
 #' @author Luke Pilling
@@ -236,9 +234,6 @@ phewas <- function(
 	# if parallel use parall otherwise run sequentially
 	if (parallel)  {
 
-		dots <- list(...)
-		mc_preschedule <- dots$mc_preschedule %||% TRUE
-
 		fit_one_i <- function(i) {
 			phe1(
 				x = xv_vars[[i]],
@@ -267,8 +262,7 @@ phewas <- function(
 		ret_list <- parallel::mclapply(
 			X = seq_along(xv_vars),
 			FUN = fit_one_i,
-			mc.cores = n_child,
-			mc.preschedule = mc_preschedule
+			mc.cores = n_child
 		)
 
 		ret <- ret_list |> purrr::list_rbind()
