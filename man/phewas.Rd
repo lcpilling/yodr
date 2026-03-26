@@ -94,7 +94,7 @@ To use base R \code{as.factor()} instead set option "af_base" to TRUE
 \item{interacts_with}{A string. A variable found in \code{d}. Will add to regression formula like \code{x*i} and catch output
 \code{default=""} (character)}
 
-\item{parallel}{Logical. Run in parallel using {parallelly} package? If FALSE, will run sequentially. Parallel processing can speed up the analysis when you have many exposures and/or outcomes, but be aware it uses more RAM and can be slower for small numbers of exposures/outcomes due to overhead of parallelization.
+\item{parallel}{Logical. Run in parallel using {parallel} package? If FALSE, will run sequentially. Parallel processing can speed up the analysis when you have many exposures and/or outcomes, but be aware it uses more RAM and can be slower for small numbers of exposures/outcomes due to overhead of parallelization.
 \code{default=FALSE}}
 
 \item{n_child}{Numeric. Number of child processes to create for parallel processing. Default is a fraction of the total cores available to avoid crashing cloud instances due to RAM limits.
@@ -106,7 +106,7 @@ To use base R \code{as.factor()} instead set option "af_base" to TRUE
 \item{verbose}{Logical. Be verbose,
 \code{default=FALSE}}
 
-\item{...}{Other \code{tidy_ci()} options}
+\item{...}{Other options passed on internally}
 }
 \value{
 Returns a tibble - summary statistics from a model

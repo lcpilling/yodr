@@ -42,7 +42,12 @@
 #' @param n_boot Integer. Number of bootstrap replicates for adjusted (logistic) binary-outcome AFE/PAF.
 #'   Only used when `y_t` is `NULL` and `z != ""`. If 0 then no bootstrap CIs are computed.
 #'        `default=0` (integer)
+#' @param parallel Logical. Run in parallel using {parallel} package for bootsrapping? If FALSE, will run sequentially. Parallel processing can speed up the analysis when you have many exposures and/or outcomes, but be aware it uses more RAM and can be slower for small numbers of exposures/outcomes due to overhead of parallelization.
+#'        \code{default=FALSE}
+#' @param n_child Numeric. Number of child processes to create for parallel processing. Default is a fraction of the total cores available to avoid crashing cloud instances due to RAM limits.
+#'        \code{default=(total cores available)/3}
 #' @param verbose Logical. Be verbose, `default=FALSE`.
+#' @param ... Other options passed on internally
 #'
 #' @examples
 #'
@@ -97,7 +102,10 @@ paf <- function(
   y_t = NULL,
   z = "",
   n_boot = 0L,
-  verbose = FALSE
+  parallel = TRUE,
+  n_child = floor(parallelly::availableCores()/3),
+  verbose = FALSE,
+  ...
 )  {
 
   v <- packageVersion("yodr")
@@ -223,7 +231,7 @@ paf <- function(
     # fit GLM
     glm_formula <- stats::as.formula(paste0(y, " ~ ", x, z))
     glm_fit <- stats::glm(glm_formula, data = d, family = stats::binomial())
-    glm_fit_tidy <- as.data.frame(yodr::tidy(glm_fit, quiet=TRUE))
+    glm_fit_tidy <- as.data.frame(tidy(glm_fit, quiet=TRUE))
     
     # compute adjusted risks + fractions from a fitted model and data
     adj <- calc_adj_from_glm(glm_fit = glm_fit, d_fit = d, x = x, y = y)
@@ -248,8 +256,9 @@ paf <- function(
       cli::cli_alert("Bootstrapping adjusted AFE/PAF CIs with {n_boot} iterations (can take a while)")
   
       n <- nrow(d)
-  
-      boot_res <- purrr::map_dfr(seq_len(n_boot), \(b) {
+	  
+	  # function to do bootstrap
+	  do_boot <- function(b)  {
         boot_idx <- sample.int(n = n, size = n, replace = TRUE)
         d_boot <- d[boot_idx, , drop = FALSE]
   
@@ -258,11 +267,28 @@ paf <- function(
         n_exposed_boot <- sum(d_boot[[x]] == 1)
   
         data.frame(
-        paf = adj_boot$paf,
-        afe = adj_boot$afe,
-        excess_cases_exposed_adj = n_exposed_boot * (adj_boot$risk_counterfactual_exposed - adj_boot$risk_counterfactual_unexposed)
+          paf = adj_boot$paf,
+          afe = adj_boot$afe,
+          excess_cases_exposed_adj = n_exposed_boot * (adj_boot$risk_counterfactual_exposed - adj_boot$risk_counterfactual_unexposed)
         )
-      })
+      }
+      
+      # sequential or parallel?
+      if (parallel) {
+		cli::cli_alert("Using parallel processing with {n_child} child processes")
+		dots <- list(...)
+		mc_preschedule <- dots$mc_preschedule %||% TRUE
+        boot_res_list <- parallel::mclapply(
+          X = seq_len(n_boot),
+          FUN = do_boot,
+          mc.cores = n_child,
+          mc.preschedule = mc_preschedule
+        )
+        boot_res <- boot_res_list |> purrr::list_rbind()
+      } else {
+        boot_res <- purrr::map_dfr(seq_len(n_boot), do_boot)
+      }
+
   
       # bootstrap se and z (normal approximation)
       se_paf <- stats::sd(boot_res$paf, na.rm = TRUE)
@@ -354,7 +380,7 @@ paf <- function(
     surv_obj <- survival::Surv(time = d[[y_t]], event = d[[y]])
     cox_formula <- stats::as.formula(paste0("surv_obj ~ factor(", x, ")", z))
     cox_fit <- survival::coxph(cox_formula, data = d)
-    cox_fit_tidy <- as.data.frame(yodr::tidy(cox_fit, quiet=TRUE))
+    cox_fit_tidy <- as.data.frame(tidy(cox_fit, quiet=TRUE))
 
     # hazard ratio, ci, and p-value
     hr <- cox_fit_tidy[1,"estimate"]

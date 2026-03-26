@@ -58,7 +58,7 @@
 #'        \code{default=FALSE}
 #' @param interacts_with A string. A variable found in `d`. Will add to regression formula like `x*i` and catch output
 #'        \code{default=""} (character)
-#' @param parallel Logical. Run in parallel using {parallelly} package? If FALSE, will run sequentially. Parallel processing can speed up the analysis when you have many exposures and/or outcomes, but be aware it uses more RAM and can be slower for small numbers of exposures/outcomes due to overhead of parallelization.
+#' @param parallel Logical. Run in parallel using {parallel} package? If FALSE, will run sequentially. Parallel processing can speed up the analysis when you have many exposures and/or outcomes, but be aware it uses more RAM and can be slower for small numbers of exposures/outcomes due to overhead of parallelization.
 #'        \code{default=FALSE}
 #' @param n_child Numeric. Number of child processes to create for parallel processing. Default is a fraction of the total cores available to avoid crashing cloud instances due to RAM limits.
 #'        \code{default=(total cores available)/3}
@@ -66,7 +66,7 @@
 #'        \code{default=TRUE}
 #' @param verbose Logical. Be verbose,
 #'        \code{default=FALSE}
-#' @param ... Other `tidy_ci()` options
+#' @param ... Other options passed on internally
 #'
 #' @examples
 #' # for one outcome, equivalent to `tidy_ci(glm(sbp ~ bmi +age+sex, d=example_data))` - with added `n`
@@ -233,7 +233,7 @@ phewas <- function(
 	xv_vars_n <- length(xv_vars)
 	cli::cli_alert("Getting {xv_vars_n} association{?s}")
 
-	# if parallel use parallely otherwise run sequentially
+	# if parallel use parall otherwise run sequentially
 	if (parallel)  {
 
 		dots <- list(...)

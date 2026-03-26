@@ -1,16 +1,17 @@
-# yodr 1.1.1 (24th March 2026)
+# yodr 1.1.1 (26th March 2026)
 
 ### Changes
  - `paf()` can now:
    - estimate AFE/PAF from adjusted logistic regression models. CIs estimated from non-parametric bootstrap.
    - provides estimates of the excess cases in the exposed (with 95% CIs)
    - other improvements to estimates and output generally
+   - `parallel` option to help speed up bootstrapping
 
 # yodr 1.1.0 (17th March 2026)
 
 ### New features
  - `phewas` can now utilise more cores by running with `parallel=TRUE`
- - {parallelly} package added to dependencies
+ - {parallel} package added to dependencies
  - New function `estimate_ld` to estimate haplotype frequencies and LD statistics between two biallelic variants
  - New function `paf` to estimate attributable fraction in the exposed (AFE) and population attributable fraction (PAF) with 95% CIs for a binary exposure (coded 0/1)
    - Can be a simple binary outcome (prevalence / risk) or a time-to-event outcome (incidence) and uses a Cox proportional hazards model
