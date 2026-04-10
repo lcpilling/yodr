@@ -46,8 +46,8 @@
 #'        \code{default=TRUE}
 #' @param skip_boot Logical. If regression is not significant then skip bootstrapping for PAF CIs
 #'        \code{default=TRUE}
-#' @param mc_cores Numeric. Number of cores to use for parallel processing.
-#'        \code{default=max(1L, parallel::detectCores() - 1L)}
+#' @param n_child Numeric. Number of child processes to create for parallel processing. Default is a fraction of the total cores available to avoid crashing cloud instances due to RAM limits.
+#'        \code{default=(total cores available)/3}
 #' @param verbose Logical. Be verbose, `default=FALSE`.
 #'
 #' @examples
@@ -105,7 +105,7 @@ paf <- function(
   n_boot = 0L,
   skip_boot = TRUE,
   use_parallel = TRUE,
-  mc_cores = max(1L, parallel::detectCores() - 1L),
+  n_child = floor(parallelly::availableCores()/3),
   verbose = FALSE
 )  {
 
@@ -281,11 +281,11 @@ paf <- function(
       
       # sequential or parallel?
       if (use_parallel) {
-		cli::cli_alert("Using parallel processing with {mc_cores} cores")
+		cli::cli_alert("Using parallel processing with {n_child} child processes")
         boot_res_list <- parallel::mclapply(
           X = seq_len(n_boot),
           FUN = do_boot,
-          mc.cores = mc_cores
+          mc.cores = n_child
         )
         boot_res <- boot_res_list |> purrr::list_rbind()
       } else {
