@@ -43,7 +43,7 @@
 #'   Only used when `y_t` is `NULL` and `z != ""`. If 0 then no bootstrap CIs are computed.
 #'        `default=0` (integer)
 #' @param use_parallel Logical. Use parallel processing for bootstraps?
-#'        \code{default=TRUE}
+#'        \code{default=FALSE}
 #' @param skip_boot Logical. If regression is not significant then skip bootstrapping for PAF CIs
 #'        \code{default=TRUE}
 #' @param n_child Numeric. Number of child processes to create for parallel processing. Default is a fraction of the total cores available to avoid crashing cloud instances due to RAM limits.
@@ -104,13 +104,13 @@ paf <- function(
   z = "",
   n_boot = 0L,
   skip_boot = TRUE,
-  use_parallel = TRUE,
+  use_parallel = FALSE,
   n_child = floor(parallelly::availableCores()/3),
   verbose = FALSE
 )  {
 
   v <- packageVersion("yodr")
-  if (verbose) cli::cli_alert_info("yodr v{v}")
+  cli::cli_alert_info("yodr v{v}")
   if (verbose) cli::cli_alert("Estimating attributable fraction in the exposed (AFE) and population attributable fraction (PAF) with 95% CIs")
   start_time <- Sys.time()
 

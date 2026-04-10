@@ -12,8 +12,8 @@ paf(
   z = "",
   n_boot = 0L,
   skip_boot = TRUE,
-  use_parallel = TRUE,
-  mc_cores = max(1L, parallel::detectCores() - 1L),
+  use_parallel = FALSE,
+  n_child = floor(parallelly::availableCores()/3),
   verbose = FALSE
 )
 }
@@ -43,10 +43,10 @@ Only used when \code{y_t} is \code{NULL} and \code{z != ""}. If 0 then no bootst
 \code{default=TRUE}}
 
 \item{use_parallel}{Logical. Use parallel processing for bootstraps?
-\code{default=TRUE}}
+\code{default=FALSE}}
 
-\item{mc_cores}{Numeric. Number of cores to use for parallel processing.
-\code{default=max(1L, parallel::detectCores() - 1L)}}
+\item{n_child}{Numeric. Number of child processes to create for parallel processing. Default is a fraction of the total cores available to avoid crashing cloud instances due to RAM limits.
+\code{default=(total cores available)/3}}
 
 \item{verbose}{Logical. Be verbose, \code{default=FALSE}.}
 }
