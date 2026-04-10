@@ -11,10 +11,10 @@ paf(
   y_t = NULL,
   z = "",
   n_boot = 0L,
-  parallel = TRUE,
-  n_child = floor(parallelly::availableCores()/3),
-  verbose = FALSE,
-  ...
+  skip_boot = TRUE,
+  use_parallel = TRUE,
+  mc_cores = max(1L, parallel::detectCores() - 1L),
+  verbose = FALSE
 )
 }
 \arguments{
@@ -39,15 +39,16 @@ estimated by standardisation (g-formula).
 Only used when \code{y_t} is \code{NULL} and \code{z != ""}. If 0 then no bootstrap CIs are computed.
 \code{default=0} (integer)}
 
-\item{parallel}{Logical. Run in parallel using {parallel} package for bootsrapping? If FALSE, will run sequentially. Parallel processing can speed up the analysis when you have many exposures and/or outcomes, but be aware it uses more RAM and can be slower for small numbers of exposures/outcomes due to overhead of parallelization.
-\code{default=FALSE}}
+\item{skip_boot}{Logical. If regression is not significant then skip bootstrapping for PAF CIs
+\code{default=TRUE}}
 
-\item{n_child}{Numeric. Number of child processes to create for parallel processing. Default is a fraction of the total cores available to avoid crashing cloud instances due to RAM limits.
-\code{default=(total cores available)/3}}
+\item{use_parallel}{Logical. Use parallel processing for bootstraps?
+\code{default=TRUE}}
+
+\item{mc_cores}{Numeric. Number of cores to use for parallel processing.
+\code{default=max(1L, parallel::detectCores() - 1L)}}
 
 \item{verbose}{Logical. Be verbose, \code{default=FALSE}.}
-
-\item{...}{Other options passed on internally}
 }
 \value{
 A data frame containing AFE and PAF (as proportions and percentages) with 95\% CIs and p-values,

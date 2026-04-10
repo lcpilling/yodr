@@ -42,12 +42,13 @@
 #' @param n_boot Integer. Number of bootstrap replicates for adjusted (logistic) binary-outcome AFE/PAF.
 #'   Only used when `y_t` is `NULL` and `z != ""`. If 0 then no bootstrap CIs are computed.
 #'        `default=0` (integer)
-#' @param parallel Logical. Run in parallel using {parallel} package for bootsrapping? If FALSE, will run sequentially. Parallel processing can speed up the analysis when you have many exposures and/or outcomes, but be aware it uses more RAM and can be slower for small numbers of exposures/outcomes due to overhead of parallelization.
-#'        \code{default=FALSE}
-#' @param n_child Numeric. Number of child processes to create for parallel processing. Default is a fraction of the total cores available to avoid crashing cloud instances due to RAM limits.
-#'        \code{default=(total cores available)/3}
+#' @param use_parallel Logical. Use parallel processing for bootstraps?
+#'        \code{default=TRUE}
+#' @param skip_boot Logical. If regression is not significant then skip bootstrapping for PAF CIs
+#'        \code{default=TRUE}
+#' @param mc_cores Numeric. Number of cores to use for parallel processing.
+#'        \code{default=max(1L, parallel::detectCores() - 1L)}
 #' @param verbose Logical. Be verbose, `default=FALSE`.
-#' @param ... Other options passed on internally
 #'
 #' @examples
 #'
@@ -102,10 +103,10 @@ paf <- function(
   y_t = NULL,
   z = "",
   n_boot = 0L,
-  parallel = TRUE,
-  n_child = floor(parallelly::availableCores()/3),
-  verbose = FALSE,
-  ...
+  skip_boot = TRUE,
+  use_parallel = TRUE,
+  mc_cores = max(1L, parallel::detectCores() - 1L),
+  verbose = FALSE
 )  {
 
   v <- packageVersion("yodr")
@@ -125,6 +126,8 @@ paf <- function(
   if (!any(class(d) %in% c("data.frame", "tbl", "tbl_df"))) {
     stop("d needs to be a data.frame or tibble.")
   }
+
+  if (verbose) cli::cli_alert("Estimating attributable fraction in the exposed (AFE) and population attributable fraction (PAF) with 95% CIs between '{x}' and '{y}'")
 
   # check variables are all in d
   if (!x %in% colnames(d)) cat("!! Exposure variable `x` not in the provided data frame\n")
@@ -251,7 +254,10 @@ paf <- function(
     excess_cases_exposed_ci_lower <- NA_real_
     excess_cases_exposed_ci_upper <- NA_real_
 
-    if (n_boot > 0L) {
+    # skip boot?
+    if (skip_boot & glm_fit_tidy[1,"p.value"]<0.05)  skip_boot <- FALSE
+
+    if (n_boot > 0L & !skip_boot) {
   
       cli::cli_alert("Bootstrapping adjusted AFE/PAF CIs with {n_boot} iterations (can take a while)")
   
@@ -274,12 +280,12 @@ paf <- function(
       }
       
       # sequential or parallel?
-      if (parallel) {
-		cli::cli_alert("Using parallel processing with {n_child} child processes")
+      if (use_parallel) {
+		cli::cli_alert("Using parallel processing with {mc_cores} cores")
         boot_res_list <- parallel::mclapply(
           X = seq_len(n_boot),
           FUN = do_boot,
-          mc.cores = n_child
+          mc.cores = mc_cores
         )
         boot_res <- boot_res_list |> purrr::list_rbind()
       } else {
@@ -327,10 +333,10 @@ paf <- function(
       # logistic regression output
       or = glm_fit_tidy[1,"estimate"],
       or_ci_lower = glm_fit_tidy[1,"conf.low"],
-      or_ci_lower = glm_fit_tidy[1,"conf.high"],
+      or_ci_upper = glm_fit_tidy[1,"conf.high"],
       or_z = glm_fit_tidy[1,"statistic"],
       or_p = glm_fit_tidy[1,"p.value"],
-	  
+      
       # population attributable fraction
       paf = paf,
       paf_ci_lower = paf_ci_lower,
@@ -447,7 +453,7 @@ paf <- function(
       # logistic regression output
       hr = cox_fit_tidy[1,"estimate"],
       hr_ci_lower = cox_fit_tidy[1,"conf.low"],
-      hr_ci_lower = cox_fit_tidy[1,"conf.high"],
+      hr_ci_upper = cox_fit_tidy[1,"conf.high"],
       hr_z = cox_fit_tidy[1,"statistic"],
       hr_p = cox_fit_tidy[1,"p.value"],
 
